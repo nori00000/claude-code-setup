@@ -63,11 +63,31 @@ git clone https://github.com/nori00000/claude-code-setup.git ~/claude-code-setup
 source ~/.zshrc
 ```
 
-## 이동 중 개발 (SSH + 머신 핸드오프)
+## 머신 간 개발 이어가기
 
-1. 현재 작업: `cl [작업]` → tmux 세션 생성
-2. SSH 접속 후: `tmux attach -t cl-{폴더명}`
-3. 작업 이어가기: 세션 복원, 프롬프트 계속 실행
+### Mac A에서 마무리
+```bash
+git add -A && git commit -m "WIP"
+git push origin $(git branch --show-current)
+```
+
+### Mac B에서 이어받기 (cmux/wrapper 사용 가능)
+```bash
+cms  # cmux로 studio 접속 (또는 ssh studio)
+cd ~/projects/myproject
+git fetch origin
+git switch <현재-브랜치>
+git pull --ff-only origin <현재-브랜치>
+cl "이어서 작업"
+```
+
+### 스마트폰에서 이어받기 (plain SSH 전용)
+```bash
+ssh studio
+cd ~/projects/myproject
+git fetch origin && git switch <현재-브랜치> && git pull --ff-only origin <현재-브랜치>
+cl "긴급 수정"
+```
 
 ### 자동 핸드오프
 

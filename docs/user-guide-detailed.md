@@ -705,32 +705,74 @@ cd ~/projects/salpim-web
 ~/claude-code-setup/scripts/init-project.sh $(pwd)
 ```
 
-### 7.3 이동 중 개발 연속
+### 7.3 머신 간 개발 연속 (Git 기준)
 
-**시나리오: 카페에서 MacBook Air로 작업 중 → 귀가 후 스튜디오에서 계속 작업**
+머신을 옮길 때는 **현재 브랜치 기준**으로 동기화합니다:
+
+**Mac A에서 작업 마무리:**
 
 ```bash
-# 카페 (MacBook Air)
-$ pwd
-/Users/leesangmin/projects/salpim-web
+# 현재 브랜치 확인
+git branch --show-current
+# → feature/login-ui
 
-$ cl "UI 컴포넌트 추가"
-# tmux 세션 cl-salpim-web 자동 생성
-# 작업 진행 중...
+# 작업 커밋 + 푸시
+git add -A && git commit -m "WIP: 로그인 UI"
+git push origin $(git branch --show-current)
+```
 
-# 30분 후, SSH 지연으로 다시 접속 필요
-^C (SSH 끊김)
+**Mac B에서 이어받기:**
 
-# ─────────────────────────────────────
+```bash
+cd ~/projects/salpim-web
 
-# 집 (스튜디오 SSH 접속)
-$ ssh -J jumphost studio
-$ tmux list-sessions
-cl-salpim-web (attached)
+# 현재 브랜치 가져오기
+git fetch origin
+git switch feature/login-ui
+git pull --ff-only origin feature/login-ui
 
-$ tmux attach -t cl-salpim-web
-# 카페에서 진행 중이던 세션 그대로 재개!
-# 작업 계속...
+# 작업 이어가기
+cl "로그인 UI 마저 완성해줘"
+```
+
+### 7.3.1 다른 Mac에서 접속 (cmux / wrapper 사용 가능)
+
+Mac 간 이동 시 cmux, SSH wrapper를 자유롭게 사용합니다:
+
+```bash
+# cmux로 M4 Studio 접속
+cms   # alias for cmux-remote m4-studio
+
+# 또는 Tailscale SSH
+ssh studio
+
+# tmux 세션 확인 및 재접속
+tmux list-sessions
+tmux attach -t cl-salpim-web
+```
+
+### 7.3.2 스마트폰에서 접속 (plain SSH 전용)
+
+스마트폰은 cmux 등 wrapper를 사용할 수 없으므로 **plain SSH만** 사용합니다:
+
+```bash
+# plain SSH 접속
+ssh studio
+
+# 프로젝트 이동 + 최신 브랜치 가져오기
+cd ~/projects/salpim-web
+git fetch origin
+git switch feature/login-ui
+git pull --ff-only origin feature/login-ui
+
+# tmux 세션이 있으면 재접속
+tmux attach -t cl-salpim-web
+
+# 없으면 새로 시작 (tmux 자동 생성됨)
+cl "핫픽스: 로그인 버그"
+
+# tmux 사용 ���가 환경이면
+CL_NO_TMUX=1 cl "긴급 수정"
 ```
 
 ### 7.4 자동 머신 핸드오프 (핵심!)
@@ -771,53 +813,26 @@ last_session: '2026-04-09T15:00:00Z'
 #### 전체 흐름 예시
 
 ```
-Mac A (M4 Studio)에서 cl → 작업 → 세션 종료
+Mac A (M4 Studio)에서:
+  cl → 작업 → git push origin $(git branch --show-current) → 세션 종료
   → session-backup.sh가 machines/m4-studio/last_session.json 기록
   → homelab-orchestration 자동 commit+push
       ↓
-Mac B (M4 Air)에서 git pull (또는 session-restore가 자동 확인) → cl
-  → [handoff] m4-studio → myproject (시각, branch, dirty/unpushed 표시)
-  → last_machine: m4-air로 갱신
-  → 작업 이어가기
+Mac B (M4 Air, cmux/wrapper 사용 가능)에서:
+  git fetch origin
+  git switch <현재-브랜치>
+  git pull --ff-only origin <현재-브랜치>
+  cl → [handoff] m4-studio → myproject (시각, branch, dirty/unpushed 표시)
+  → last_machine: m4-air로 갱신 → 작업 이어가기
+      ↓
+스마트폰 (plain SSH 전용)에서:
+  ssh studio
+  cd ~/projects/myproject
+  git fetch origin && git switch <현재-브랜치> && git pull --ff-only origin <현재-브랜치>
+  cl → 작업 이어가기
 ```
 
-### 7.5 일반 터미널에서 작업 (tmux 사용 불가)
-
-점프 서버/제한된 SSH 환경에서는 tmux를 사용할 수 없습니다. 이 경우:
-
-```bash
-# CL_NO_TMUX=1 설정하여 직접 실행
-CL_NO_TMUX=1 cl "버그 수정"
-
-# 또는 환경변수 설정 후
-export CL_NO_TMUX=1
-cl "작업1"
-cl "작업2"
-cl "작업3"
-unset CL_NO_TMUX
-```
-
-### 7.6 스마트폰에서 SSH 접속해서 작업
-
-SSH 클라이언트 앱으로 접속할 때 (plain SSH):
-
-```bash
-# 스마트폰에서 SSH 접속
-$ ssh studio
-studio$ pwd
-/Users/leesangmin/projects/salpim-web
-
-# CL_NO_TMUX 설정
-export CL_NO_TMUX=1
-cl "핫픽스: 로그인 버그"
-
-# 장시간 작업은 tmux 사용 권장 (CL_NO_TMUX 해제)
-# tmux 안에서 실행하면 SSH 끊겨도 세션 유지
-unset CL_NO_TMUX
-cl "장기작업"
-```
-
-### 7.7 한 번에 모든 머신에 설치
+### 7.5 한 번에 모든 머신에 설치
 
 ```bash
 for machine in studio air pro; do

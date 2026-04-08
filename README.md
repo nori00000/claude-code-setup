@@ -38,20 +38,33 @@ cd claude-code-setup
 
 ### 머신 간 연속 개발
 
+**Mac A에서 마무리:**
+```bash
+git push origin $(git branch --show-current)
 ```
-Mac A에서 cl → 작업 → 세션 종료 (last_machine 자동 갱신)
-  ↓ git push (또는 session-backup이 homelab-orchestration 자동 동기��)
-Mac B에서 cl
-  → [handoff] m4-studio → myproject (2026-04-09T..., branch: feature-xyz)
-  �� last_machine: m4-air로 갱신
-  → 작업 이어가기
+
+**Mac B에서 이어받기 (cmux/wrapper 가능):**
+```bash
+git fetch origin
+git switch <현재-브랜치>
+git pull --ff-only origin <현재-브랜치>
+cl "이어서 작업"
+# → [handoff] m4-studio → myproject (시각, branch: feature-xyz)
+```
+
+**스마트폰에서 (plain SSH 전용):**
+```bash
+ssh studio
+cd ~/projects/myproject
+git fetch origin && git switch <현재-브랜치> && git pull --ff-only origin <현재-브랜치>
+cl "긴급 수정"
 ```
 
 **동기화 경로 (2중):**
 1. `dev-retrospective/data/machines/` — 세션 종료 시 자동 기록, homelab-orchestration으로 push
 2. `.claude/project-profile.md` — cl 실행 시 last_machine 갱신 (git push 시 공유)
 
-**tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>` tmux 세션 자동 생성. SSH 끊겨도 세션 ��지. `CL_NO_TMUX=1 cl`로 비활성화.
+**tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>` tmux 세션 자동 생성. SSH 끊겨도 세션 유지. `CL_NO_TMUX=1 cl`로 비활성화.
 
 ## Shell Aliases
 
