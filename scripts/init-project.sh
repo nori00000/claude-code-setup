@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_DIR="$(cd "$SCRIPT_DIR/../templates" && pwd)"
+MACHINE_NAME="$(hostname -s 2>/dev/null || echo 'unknown')"
 
 usage() {
   cat <<EOF
@@ -79,6 +80,12 @@ detect_verification() {
       install="npm install"
       if grep -q '"lint"' "$PROJECT_DIR/package.json" 2>/dev/null; then
         fast_check="npm run lint"
+      elif grep -q '"type-check"' "$PROJECT_DIR/package.json" 2>/dev/null; then
+        fast_check="npm run type-check"
+      elif grep -q '"typecheck"' "$PROJECT_DIR/package.json" 2>/dev/null; then
+        fast_check="npm run typecheck"
+      elif grep -q '"check"' "$PROJECT_DIR/package.json" 2>/dev/null; then
+        fast_check="npm run check"
       else
         fast_check="npm test"
       fi
@@ -149,12 +156,14 @@ cat > "$PROFILE" <<MARKDOWN
 ---
 # Machine-readable verification commands (consumed by OMC verification module)
 verification:
-  install: "$INSTALL"
-  fast_check: "$FAST_CHECK"
-  full_check: "$FULL_CHECK"
-  smoke_check: ""
+  install: '${INSTALL}'
+  fast_check: '${FAST_CHECK}'
+  full_check: '${FULL_CHECK}'
+  smoke_check: ''
 managed_by: claude-code-setup
 blueprint: "$BLUEPRINT"
+last_machine: '${MACHINE_NAME}'
+last_session: '${CREATED_AT}'
 ---
 <!-- claude-code-setup:managed -->
 # Project Profile

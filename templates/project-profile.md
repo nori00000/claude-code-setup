@@ -7,6 +7,8 @@ verification:
   smoke_check: ""
 managed_by: claude-code-setup
 blueprint: ""
+last_machine: ""
+last_session: ""
 ---
 <!-- claude-code-setup:managed -->
 # Project Profile
