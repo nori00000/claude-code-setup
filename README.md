@@ -38,26 +38,31 @@ cd claude-code-setup
 
 ### 머신 간 연속 개발
 
-**Mac A에서 마무리:**
+**Handoff 전 (보내는 쪽):**
 ```bash
-git push origin $(git branch --show-current)
+git status --short
+git branch --show-current          # 예: feature/login-fix
+git push origin <current-branch>
 ```
 
-**Mac B에서 이어받기 (cmux/wrapper 가능):**
+**다른 Mac에서 이어받기 (cmux/wrapper 가능):**
 ```bash
+cms  # 또는 ssh studio
+cd ~/projects/myproject
 git fetch origin
-git switch <현재-브랜치>
-git pull --ff-only origin <현재-브랜치>
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
 cl "이어서 작업"
-# → [handoff] m4-studio → myproject (시각, branch: feature-xyz)
 ```
 
 **스마트폰에서 (plain SSH 전용):**
 ```bash
-ssh studio
-cd ~/projects/myproject
-git fetch origin && git switch <현재-브랜치> && git pull --ff-only origin <현재-브랜치>
-cl "긴급 수정"
+ssh your-main-mac
+cd /absolute/path/to/project
+git fetch origin
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
+cl
 ```
 
 **동기화 경로 (2중):**

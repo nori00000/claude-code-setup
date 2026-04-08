@@ -65,28 +65,41 @@ source ~/.zshrc
 
 ## 머신 간 개발 이어가기
 
-### Mac A에서 마무리
+### Handoff 전 (보내는 쪽)
 ```bash
-git add -A && git commit -m "WIP"
-git push origin $(git branch --show-current)
+git status --short
+git branch --show-current          # 예: feature/login-fix
+git push origin <current-branch>
 ```
 
-### Mac B에서 이어받기 (cmux/wrapper 사용 가능)
+### 다른 Mac에서 이어받기 (cmux/wrapper 가능)
 ```bash
-cms  # cmux로 studio 접속 (또는 ssh studio)
+cms  # cmux로 접속 (또는 ssh studio)
 cd ~/projects/myproject
 git fetch origin
-git switch <현재-브랜치>
-git pull --ff-only origin <현재-브랜치>
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
 cl "이어서 작업"
 ```
 
 ### 스마트폰에서 이어받기 (plain SSH 전용)
+
+스마트폰에는 wrapper가 없습니다. 원격 Mac에 들어가서 상태 보고 이어받기가 핵심입니다.
+
 ```bash
-ssh studio
-cd ~/projects/myproject
-git fetch origin && git switch <현재-브랜치> && git pull --ff-only origin <현재-브랜치>
+ssh your-main-mac
+cd /absolute/path/to/project
+git fetch origin
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
 cl "긴급 수정"
+```
+
+Fallback (가장 단순):
+```bash
+ssh your-main-mac
+cd /absolute/path/to/project
+cl
 ```
 
 ### 자동 핸드오프

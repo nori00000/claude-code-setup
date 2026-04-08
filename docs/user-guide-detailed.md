@@ -705,37 +705,37 @@ cd ~/projects/salpim-web
 ~/claude-code-setup/scripts/init-project.sh $(pwd)
 ```
 
-### 7.3 머신 간 개발 연속 (Git 기준)
+### 7.3 Branch-Aware Handoff (핵심)
 
-머신을 옮길 때는 **현재 브랜치 기준**으로 동기화합니다:
+머신을 옮길 때는 **현재 브랜치 기준**으로 동기화합니다. `main` 고정이 아닙니다.
 
-**Mac A에서 작업 마무리:**
-
-```bash
-# 현재 브랜치 확인
-git branch --show-current
-# → feature/login-ui
-
-# 작업 커밋 + 푸시
-git add -A && git commit -m "WIP: 로그인 UI"
-git push origin $(git branch --show-current)
-```
-
-**Mac B에서 이어받기:**
+#### Handoff 전 (보내는 쪽)
 
 ```bash
-cd ~/projects/salpim-web
-
-# 현재 브랜치 가져오기
-git fetch origin
-git switch feature/login-ui
-git pull --ff-only origin feature/login-ui
-
-# 작업 이어가기
-cl "로그인 UI 마저 완성해줘"
+git status --short              # 남은 변경사항 확인
+git branch --show-current       # 현재 브랜치 확인 (예: feature/login-fix)
+git push origin <current-branch>  # 현재 브랜치를 원격에 푸시
 ```
 
-### 7.3.1 다른 Mac에서 접속 (cmux / wrapper 사용 가능)
+#### Handoff 후 (받는 쪽)
+
+```bash
+git fetch origin                              # 원격 최신 정보 가져오기 (작업 파일은 안 바뀜, 안전한 "먼저 보기")
+git switch <current-branch>                   # 이어야 할 브랜치로 이동 (예: feature/login-fix)
+git pull --ff-only origin <current-branch>    # 그 브랜치만 깔끔하게 최신화 (이상한 자동 병합 방지)
+```
+
+> **왜 `--ff-only`인가?** fast-forward만 허용해서 예상치 못한 머지 커밋을 막습니다. 충돌이 있으면 실패하므로 초보자에게도 안전합니다.
+
+> **`<current-branch>`는 뭔가?** 방금 `git branch --show-current`로 확인한 브랜치명 그대로입니다. 예: `feature/login-fix`
+
+#### 왜 이게 좋은가
+
+- main 고정보다 실수를 줄입니다
+- feature 브랜치 handoff를 안전하게 할 수 있습니다
+- "지금 하던 일"을 그대로 다른 Mac에서 이어가게 해줍니다
+
+### 7.4 다른 Mac에서 이어받기 (cmux / wrapper 사용 가능)
 
 Mac 간 이동 시 cmux, SSH wrapper를 자유롭게 사용합니다:
 
@@ -746,36 +746,52 @@ cms   # alias for cmux-remote m4-studio
 # 또는 Tailscale SSH
 ssh studio
 
-# tmux 세션 확인 및 재접속
-tmux list-sessions
-tmux attach -t cl-salpim-web
-```
-
-### 7.3.2 스마트폰에서 접속 (plain SSH 전용)
-
-스마트폰은 cmux 등 wrapper를 사용할 수 없으므로 **plain SSH만** 사용합니다:
-
-```bash
-# plain SSH 접속
-ssh studio
-
-# 프로젝트 이동 + 최신 브랜치 가져오기
+# 프로젝트 이동 + handoff 후 명령
 cd ~/projects/salpim-web
 git fetch origin
-git switch feature/login-ui
-git pull --ff-only origin feature/login-ui
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
 
-# tmux 세션이 있으면 재접속
+# tmux 세션이 남아있으면 재접속
 tmux attach -t cl-salpim-web
 
-# 없으면 새로 시작 (tmux 자동 생성됨)
-cl "핫픽스: 로그인 버그"
-
-# tmux 사용 ���가 환경이면
-CL_NO_TMUX=1 cl "긴급 수정"
+# 없으면 새로 시작 (cl이 tmux 자동 생성)
+cl "이어서 작업"
 ```
 
-### 7.4 자동 머신 핸드오프 (핵심!)
+### 7.5 스마트폰에서 이어받기 (plain SSH 전용)
+
+스마트폰에는 codex-setup 저장소나 wrapper가 없습니다.
+**plain SSH만** 사용하고, 원격 Mac에 들어가서 상태를 보고 이어받는 것이 핵심입니다.
+
+```bash
+# 1. plain SSH로 메인 Mac에 접속
+ssh your-main-mac
+
+# 2. 프로젝트 이동
+cd /absolute/path/to/project
+
+# 3. 상태 확인 + 브랜치 동기화
+git fetch origin
+git switch <current-branch>
+git pull --ff-only origin <current-branch>
+
+# 4. 작업 이어가기
+cl "긴급 수정"
+```
+
+**Fallback (가장 단순한 형태):**
+
+```bash
+ssh your-main-mac
+cd /absolute/path/to/project
+cl
+```
+
+> 스마트폰 터미널은 최대한 단순해야 실수도 적고 복구도 쉽습니다.
+> "원격 Mac에 들어가서 상태만 보고 이어받기"가 핵심입니다.
+
+### 7.6 자동 머신 핸드오프
 
 `cl`/`clp`/`clr` 실행 시 **두 가지가 자동으로** 일어납니다:
 
