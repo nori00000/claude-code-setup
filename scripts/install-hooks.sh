@@ -110,13 +110,7 @@ filtered = [
 if len(filtered) == len(pre):
     print("  no matching hook entry found — nothing to remove")
 else:
-    hooks["PreToolUse"] = filtered
-    if not hooks["PreToolUse"]:
-        del hooks["PreToolUse"]
-    if not hooks:
-        del data["hooks"]
-    data["hooks"] = hooks if "hooks" in data else data.get("hooks", {})
-    # Re-assign cleanly
+    # Clean up empty structures
     if filtered:
         data.setdefault("hooks", {})["PreToolUse"] = filtered
     else:

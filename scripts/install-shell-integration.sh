@@ -15,66 +15,81 @@ fi
 read -r -d '' ZSH_BLOCK <<EOF || true
 ${BLOCK_START}
 _cl_tmux_wrap() {
-  # If CL_NO_TMUX is set, or already inside tmux, run inline (return 1 = caller should run directly)
+  # If CL_NO_TMUX is set, or already inside tmux, run inline
   if [[ -n "\${CL_NO_TMUX:-}" ]] || [[ -n "\${TMUX:-}" ]]; then
     return 1
   fi
-  # tmux not available? run inline
   if ! command -v tmux >/dev/null 2>&1; then
     return 1
   fi
-  local sess="cl-\$(basename "\$PWD")"
-  # -A: attach if exists, create if not; send the original command into the new window
-  tmux new-session -A -s "\$sess" -c "\$PWD"
+  # Sanitize session name (tmux disallows . : in names)
+  local sess="cl-\$(basename "\$PWD" | tr './:' '-')"
+  # -A: attach if exists, create if not. Run cl inside with CL_NO_TMUX=1 to prevent recursion.
+  if tmux has-session -t "\$sess" 2>/dev/null; then
+    tmux attach-session -t "\$sess"
+  else
+    tmux new-session -s "\$sess" -c "\$PWD" "CL_NO_TMUX=1 \$SHELL"
+  fi
   return 0
 }
 _cl_update_profile() {
-  # Update last_machine and last_session in .claude/project-profile.md (if exists and writable)
   local profile="\$PWD/.claude/project-profile.md"
-  [[ -f "\$profile" ]] || return 0
+  [[ -f "\$profile" && -w "\$profile" ]] || return 0
   local machine="\$(hostname -s 2>/dev/null || echo unknown)"
   local now="\$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  if command -v python3 >/dev/null 2>&1; then
-    python3 -c "
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 -c "
 import pathlib, re, sys
-p = pathlib.Path(sys.argv[1])
-t = p.read_text()
-t = re.sub(r\"last_machine:.*\", f\"last_machine: '{sys.argv[2]}'\", t)
-t = re.sub(r\"last_session:.*\", f\"last_session: '{sys.argv[3]}'\", t)
-p.write_text(t)
+try:
+    p = pathlib.Path(sys.argv[1])
+    t = p.read_text()
+    m, n = sys.argv[2], sys.argv[3]
+    t = re.sub(r'last_machine:.*', lambda _: f\"last_machine: '{m}'\", t)
+    t = re.sub(r'last_session:.*', lambda _: f\"last_session: '{n}'\", t)
+    p.write_text(t)
+except Exception:
+    pass
 " "\$profile" "\$machine" "\$now"
-  fi
 }
 _cl_show_handoff() {
   local current="\$(hostname -s 2>/dev/null || echo unknown)"
   local project="\$(basename "\$PWD")"
   local shown=false
 
-  # Source 1: dev-retrospective 머신별 last_session.json (homelab-orchestration으로 동기화됨)
+  # Source 1: dev-retrospective last_session.json (single python3 call per machine)
   local machines_dir="\$HOME/.dev-retrospective/data/machines"
-  if [[ -d "\$machines_dir" ]]; then
+  if [[ -d "\$machines_dir" ]] && command -v python3 >/dev/null 2>&1; then
     for mdir in "\$machines_dir"/*/; do
       local mname="\$(basename "\$mdir")"
       [[ "\$mname" == "\$current" ]] && continue
       local sess="\$mdir/last_session.json"
       [[ -f "\$sess" ]] || continue
+      # Single python3 call for all fields
+      local info
+      info="\$(python3 -c "
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print(d.get('project',''))
+    print(d.get('timestamp',''))
+    print(d.get('git_branch',''))
+    print(d.get('dirty_files',0))
+    print(d.get('unpushed_commits',0))
+except Exception:
+    print('')
+" "\$sess" 2>/dev/null)"
       local m_project m_ts m_branch m_dirty m_unpushed
-      m_project="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('project',''))" "\$sess" 2>/dev/null)"
-      # 같은 프로젝트에서 작업했던 머신만 표시
+      { IFS= read -r m_project; IFS= read -r m_ts; IFS= read -r m_branch; IFS= read -r m_dirty; IFS= read -r m_unpushed; } <<< "\$info"
       if [[ "\$m_project" == "\$project" ]]; then
-        m_ts="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('timestamp',''))" "\$sess" 2>/dev/null)"
-        m_branch="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('git_branch',''))" "\$sess" 2>/dev/null)"
-        m_dirty="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('dirty_files',0))" "\$sess" 2>/dev/null)"
-        m_unpushed="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('unpushed_commits',0))" "\$sess" 2>/dev/null)"
         echo "\\033[33m[handoff]\\033[0m \$mname → \$project (\$m_ts, branch: \$m_branch)"
-        [[ "\$m_dirty" -gt 0 ]] && echo "  ⚠ dirty: \${m_dirty}파일"
-        [[ "\$m_unpushed" -gt 0 ]] && echo "  ⚠ unpushed: \${m_unpushed}커밋"
+        [[ "\${m_dirty:-0}" -gt 0 ]] 2>/dev/null && echo "  ⚠ dirty: \${m_dirty}파일"
+        [[ "\${m_unpushed:-0}" -gt 0 ]] 2>/dev/null && echo "  ⚠ unpushed: \${m_unpushed}커밋"
         shown=true
       fi
     done
   fi
 
-  # Source 2: project-profile.md fallback (git으로 동기화된 경우)
+  # Source 2: project-profile.md fallback
   if [[ "\$shown" == false ]]; then
     local profile="\$PWD/.claude/project-profile.md"
     if [[ -f "\$profile" ]]; then
@@ -138,8 +153,10 @@ clf() {
   local feedback_dir="\${HOME}/.claude/feedback"
   mkdir -p "\${feedback_dir}"
   local file="\${feedback_dir}/\$(date +%Y-%m).jsonl"
-  printf '{"ts":"%s","satisfaction":%s,"helpfulness":"%s","clarity":"%s","comment":"%s"}\n' \\
-    "\$(date -u +%Y-%m-%dT%H:%M:%SZ)" "\${sat}" "\${help}" "\${clarity}" "\${comment}" >> "\${file}"
+  python3 -c "
+import json, sys
+print(json.dumps({'ts':sys.argv[1],'satisfaction':int(sys.argv[2]),'helpfulness':sys.argv[3],'clarity':sys.argv[4],'comment':sys.argv[5]}))
+" "\$(date -u +%Y-%m-%dT%H:%M:%SZ)" "\${sat}" "\${help}" "\${clarity}" "\${comment}" >> "\${file}"
   echo "Feedback saved to \${file}"
 }
 cli() {
