@@ -9,6 +9,7 @@ Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, ad
 ```bash
 git clone https://github.com/nori00000/claude-code-setup.git
 cd claude-code-setup
+./scripts/install-hooks.sh
 ./scripts/install-shell-integration.sh
 source ~/.zshrc
 ./scripts/init-project.sh /absolute/path/to/your-project

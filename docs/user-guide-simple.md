@@ -63,13 +63,26 @@ git clone https://github.com/nori00000/claude-code-setup.git ~/claude-code-setup
 source ~/.zshrc
 ```
 
-## 이동 중 개발 (SSH)
+## 이동 중 개발 (SSH + 머신 핸드오프)
 
 1. 현재 작업: `cl [작업]` → tmux 세션 생성
 2. SSH 접속 후: `tmux attach -t cl-{폴더명}`
 3. 작업 이어가기: 세션 복원, 프롬프트 계속 실행
 
-별칭 추가: `alias cmux='tmux attach -t'`
+### 자동 핸드오프
+
+다른 머신에서 `cl` 실행하면 이전 머신 정보 자동 표시:
+
+```
+$ cl "작업 이어가기"
+[handoff] m4-air → salpim-web (2026-04-09T14:30Z, branch: main)
+  ⚠ dirty: 3파일
+  ⚠ unpushed: 2커밋
+```
+
+- **1순위**: `~/.dev-retrospective/data/machines/` (session-backup 자동 기록 → homelab-orchestration push)
+- **2순위**: `.claude/project-profile.md`의 `last_machine` (cl마다 자동 갱신)
+- `.claude/`가 gitignore여도 1순위로 핸드오프 작동
 
 ## 문제 해결
 

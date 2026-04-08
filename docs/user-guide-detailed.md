@@ -733,40 +733,52 @@ $ tmux attach -t cl-salpim-web
 # 작업 계속...
 ```
 
-### 7.4 project-profile.md로 머신 추적
+### 7.4 자동 머신 핸드오프 (핵심!)
 
-각 프로젝트의 `.claude/project-profile.md`에 `last_machine`과 `last_session` 필드가 있습니다:
+`cl`/`clp`/`clr` 실행 시 **두 가지가 자동으로** 일어납니다:
 
-```yaml
----
-verification:
-  ...
-last_machine: "air"
-last_session: "2026-04-09T14:30:00Z"
----
+#### 1) `[handoff]` 자동 표시
+
+다른 머신에서 같은 프로젝트를 작업한 기록이 있으면 터미널에 표시됩니다:
+
+```bash
+$ cl "UI 수정"
+[handoff] m4-air → salpim-web (2026-04-09T14:30:00Z, branch: main)
+  ⚠ dirty: 3파일
+  ⚠ unpushed: 2커밋
 ```
 
-**용도**:
-- "어느 머신에서 마지막으로 작업했나?"를 빠르게 확인
-- Git에 커밋하면 팀원도 알 수 있음
-- tmux 세션 정보와 함께 작업 컨텍스트 파악
+이 정보는 `~/.dev-retrospective/data/machines/` 아래의 `last_session.json`에서 읽습니다. 각 머신의 `session-backup.sh`가 세션 종료 시 자동으로 기록하고, `homelab-orchestration`이 머신 간 동기화합니다.
 
-**Frontmatter 수정**:
-```bash
-# 예: 스튜디오에서 작업 시작
-$ hostname
-studio
+#### 2) `last_machine` / `last_session` 자동 갱신
 
-$ cat .claude/project-profile.md
----
-...
-last_machine: "air"  # ← 이전 머신
-...
----
+`.claude/project-profile.md`가 있으면 현재 머신명과 시각으로 자동 업데이트:
 
-# 작업 완료 후 commit
-git add .claude/project-profile.md
-git commit -m "Update last_machine to studio"
+```yaml
+last_machine: 'm4-studio'    # ← cl 실행할 때마다 자동 갱신
+last_session: '2026-04-09T15:00:00Z'
+```
+
+#### 2중 동기화 경로
+
+| 경로 | 동기화 방식 | 시점 | `.claude/` gitignore여도? |
+|------|------------|------|--------------------------|
+| `dev-retrospective/machines/` | session-backup → homelab-orchestration 자동 push | 세션 종료 | **작동함** (1순위) |
+| `.claude/project-profile.md` | cl 실행 시 갱신 → git push로 공유 | cl 실행 | git 동기화 필요 (fallback) |
+
+> `.claude/`가 `.gitignore`에 포함된 프로젝트도 dev-retrospective 경로로 핸드오프가 정상 작동합니다.
+
+#### 전체 흐름 예시
+
+```
+Mac A (M4 Studio)에서 cl → 작업 → 세션 종료
+  → session-backup.sh가 machines/m4-studio/last_session.json 기록
+  → homelab-orchestration 자동 commit+push
+      ↓
+Mac B (M4 Air)에서 git pull (또는 session-restore가 자동 확인) → cl
+  → [handoff] m4-studio → myproject (시각, branch, dirty/unpushed 표시)
+  → last_machine: m4-air로 갱신
+  → 작업 이어가기
 ```
 
 ### 7.5 일반 터미널에서 작업 (tmux 사용 불가)
