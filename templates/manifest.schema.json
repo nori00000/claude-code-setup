@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["managed_by", "blueprint", "created_at", "managed_files"],
+  "properties": {
+    "managed_by": { "const": "claude-code-setup" },
+    "blueprint": { "type": "string", "enum": ["web-app", "python-service", "generic"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "managed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "mode"],
+        "properties": {
+          "path": { "type": "string" },
+          "mode": { "type": "string", "enum": ["create", "merge", "skip_if_exists"] }
+        }
+      }
+    }
+  }
+}
