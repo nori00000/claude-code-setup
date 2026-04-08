@@ -140,6 +140,11 @@ JSON
 # ── Write project-profile.md (filled from template) ──────────────────────────
 PROFILE="$CLAUDE_DIR/project-profile.md"
 
+PROFILE_CREATED=false
+if [[ -f "$PROFILE" && "$FORCE" == false ]]; then
+  echo "  skipped: $PROFILE (already exists, use --force to overwrite)"
+else
+PROFILE_CREATED=true
 cat > "$PROFILE" <<MARKDOWN
 ---
 # Machine-readable verification commands (consumed by OMC verification module)
@@ -182,6 +187,7 @@ blueprint: "$BLUEPRINT"
 ## Current Focus
 - What kind of work matters most right now?
 MARKDOWN
+fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
@@ -192,6 +198,10 @@ echo "  fast_check:  ${FAST_CHECK:-(none detected)}"
 echo "  full_check:  ${FULL_CHECK:-(none detected)}"
 echo ""
 echo "  created: $MANIFEST"
-echo "  created: $PROFILE"
+if [[ "$PROFILE_CREATED" == true ]]; then
+  echo "  created: $PROFILE"
+else
+  echo "  exists:  $PROFILE (kept)"
+fi
 echo ""
 echo "Note: Run OMC deepinit for AGENTS.md generation."

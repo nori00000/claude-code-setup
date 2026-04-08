@@ -47,12 +47,18 @@ clr() {
   fi
 }
 clf() {
-  local repo_root="${REPO_ROOT}"
   if [[ \$# -lt 3 ]]; then
     echo "usage: clf <satisfaction:1-5> <helpful|neutral|not_helpful> <clear|mixed|unclear> [comment...]"
     return 2
   fi
-  "\${repo_root}/scripts/capture-proposal-feedback.sh" "\$@"
+  local sat="\$1" help="\$2" clarity="\$3"; shift 3
+  local comment="\$*"
+  local feedback_dir="\${HOME}/.claude/feedback"
+  mkdir -p "\${feedback_dir}"
+  local file="\${feedback_dir}/\$(date +%Y-%m).jsonl"
+  printf '{"ts":"%s","satisfaction":%s,"helpfulness":"%s","clarity":"%s","comment":"%s"}\n' \\
+    "\$(date -u +%Y-%m-%dT%H:%M:%SZ)" "\${sat}" "\${help}" "\${clarity}" "\${comment}" >> "\${file}"
+  echo "Feedback saved to \${file}"
 }
 cli() {
   claude "\$@"
