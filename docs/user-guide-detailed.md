@@ -500,7 +500,7 @@ $ cl "작업"
 **이동 중 MacBook에서 집 스튜디오 접속**:
 
 ```bash
-# 모바일/Jump Desktop SSH 접속
+# 모바일 SSH 접속 (Blink, Termius, 기본 터미널 등)
 $ ssh studio
 studio$ pwd
 /Users/leesangmin/projects/salpim-web
@@ -743,7 +743,7 @@ $ tmux attach -t cl-salpim-web
 
 ```bash
 $ cl "UI 수정"
-[handoff] m4-air → salpim-web (2026-04-09T14:30:00Z, branch: main)
+[handoff] m4-air → salpim-web (2026-04-09T14:30:00Z, branch: feature-xyz)
   ⚠ dirty: 3파일
   ⚠ unpushed: 2커밋
 ```
@@ -799,10 +799,10 @@ unset CL_NO_TMUX
 
 ### 7.6 스마트폰에서 SSH 접속해서 작업
 
-Jump Desktop이나 Teminal 앱으로 SSH 접속할 때:
+SSH 클라이언트 앱으로 접속할 때 (plain SSH):
 
 ```bash
-# iPhone + Jump Desktop
+# 스마트폰에서 SSH 접속
 $ ssh studio
 studio$ pwd
 /Users/leesangmin/projects/salpim-web
@@ -811,9 +811,10 @@ studio$ pwd
 export CL_NO_TMUX=1
 cl "핫픽스: 로그인 버그"
 
-# 유지시간: Jumping Desktop이 SSH 유지하는 동안
-# 또는 장시간 유지 필요 → screen 또는 nohup 사용
-nohup cl "장기작업" > nohup.out 2>&1 &
+# 장시간 작업은 tmux 사용 권장 (CL_NO_TMUX 해제)
+# tmux 안에서 실행하면 SSH 끊겨도 세션 유지
+unset CL_NO_TMUX
+cl "장기작업"
 ```
 
 ### 7.7 한 번에 모든 머신에 설치

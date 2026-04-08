@@ -75,7 +75,7 @@ source ~/.zshrc
 
 ```
 $ cl "작업 이어가기"
-[handoff] m4-air → salpim-web (2026-04-09T14:30Z, branch: main)
+[handoff] m4-air → salpim-web (2026-04-09T14:30Z, branch: feature-xyz)
   ⚠ dirty: 3파일
   ⚠ unpushed: 2커밋
 ```

@@ -42,7 +42,7 @@ cd claude-code-setup
 Mac A에서 cl → 작업 → 세션 종료 (last_machine 자동 갱신)
   ↓ git push (또는 session-backup이 homelab-orchestration 자동 동기��)
 Mac B에서 cl
-  → [handoff] m4-studio → myproject (2026-04-09T..., branch: main)
+  → [handoff] m4-studio → myproject (2026-04-09T..., branch: feature-xyz)
   �� last_machine: m4-air로 갱신
   → 작업 이어가기
 ```
