@@ -33,6 +33,20 @@ def blocked_reason(command: str) -> Optional[str]:
             re.compile(r"xargs\s+[^\n;|&]*\brm\b", re.IGNORECASE),
             "Blocked xargs rm pipeline.",
         ),
+        (
+            re.compile(
+                r"(^|[;&|()\s])git\s+push\s+[^\n;|&]*--force(?!-with-lease)(\s|$)",
+                re.IGNORECASE,
+            ),
+            "Blocked git push --force (use --force-with-lease for safer force push).",
+        ),
+        (
+            re.compile(
+                r"(^|[;&|()\s])git\s+checkout\s+--\s+\.",
+                re.IGNORECASE,
+            ),
+            "Blocked git checkout -- . (discards all uncommitted changes).",
+        ),
     ]
     for pattern, reason in checks:
         if pattern.search(command):

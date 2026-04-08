@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Require python3 for install/update
+command -v python3 >/dev/null 2>&1 || { echo "Error: python3 is required"; exit 1; }
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZSHRC="${HOME}/.zshrc"
 BLOCK_START="# >>> claude-code-setup >>>"
 BLOCK_END="# <<< claude-code-setup <<<"
 
-# Check for existing cc() function conflict
-if [[ -f "${ZSHRC}" ]] && grep -qE 'cc\(\)' "${ZSHRC}" || grep -qF 'cc-function.sh' "${ZSHRC}" 2>/dev/null; then
+# Check for existing cc() function conflict (M6: grouped greps)
+if [[ -f "${ZSHRC}" ]] && { grep -qE 'cc\(\)' "${ZSHRC}" || grep -qF 'cc-function.sh' "${ZSHRC}" 2>/dev/null; }; then
   echo "WARNING: Existing cc() function detected in ~/.zshrc"
   echo "This script will NOT overwrite it. Using 'cl' prefix instead."
 fi
@@ -149,6 +152,14 @@ clf() {
     return 2
   fi
   local sat="\$1" help="\$2" clarity="\$3"; shift 3
+  # Input validation
+  if [[ ! "\$sat" =~ ^[1-5]\$ ]]; then
+    echo "Error: satisfaction must be 1-5 (got: \$sat)" >&2; return 2
+  fi
+  case "\$help" in helpful|neutral|not_helpful) ;; *)
+    echo "Error: helpfulness must be helpful|neutral|not_helpful (got: \$help)" >&2; return 2 ;; esac
+  case "\$clarity" in clear|mixed|unclear) ;; *)
+    echo "Error: clarity must be clear|mixed|unclear (got: \$clarity)" >&2; return 2 ;; esac
   local comment="\$*"
   local feedback_dir="\${HOME}/.claude/feedback"
   mkdir -p "\${feedback_dir}"

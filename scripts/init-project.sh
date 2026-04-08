@@ -2,15 +2,17 @@
 set -euo pipefail
 
 # cc-init-project.sh — Initialize a project for Claude Code
-# Usage: cc-init-project.sh <absolute-path-to-project> [--force]
+# Usage: cc-init-project.sh <path-to-project> [--force]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_DIR="$(cd "$SCRIPT_DIR/../templates" && pwd)"
+# Sanitize hostname for safe YAML embedding (strip single quotes)
 MACHINE_NAME="$(hostname -s 2>/dev/null || echo 'unknown')"
+MACHINE_NAME="${MACHINE_NAME//\'/}"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") <absolute-path-to-project> [--force]
+Usage: $(basename "$0") <path-to-project> [--force]
 
 Initialize a project directory for Claude Code by creating:
   .claude/manifest.json       — managed-file registry
