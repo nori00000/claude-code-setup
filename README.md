@@ -65,3 +65,4 @@ The hook `deny-destructive-commands.py` is registered as a Claude Code `PreToolU
 - Shell integration detects existing `cc()` functions and never overwrites them
 - Project init refuses to overwrite existing `.claude/manifest.json` without `--force`
 - All scripts use `set -euo pipefail` for safety
+- `scripts/open-obsidian-note.sh` opens Markdown notes in the default `Obsidian-0.1` vault and, for out-of-vault files, creates an external-doc note under `~/.dev-retrospective/data/sessions/external/` so the dev-retrospective Obsidian workflow remains the source of truth
