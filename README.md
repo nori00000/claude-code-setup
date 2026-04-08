@@ -20,7 +20,37 @@ source ~/.zshrc
 - `templates/project-profile.md`: per-project profile template with YAML frontmatter for verification commands
 - `templates/manifest.schema.json`: JSON Schema for managed harness manifests
 - `scripts/init-project.sh`: project initializer with blueprint detection (web-app/python-service/generic)
-- `scripts/install-shell-integration.sh`: shell aliases `cl`/`clp`/`clr`/`clf`/`cli`
+- `scripts/install-shell-integration.sh`: shell aliases `cl`/`clp`/`clr`/`clf`/`cli` with tmux wrapping and machine handoff
+- `scripts/install-hooks.sh`: one-command hook installer (`--dry-run`, `--uninstall`)
+- `docs/user-guide-detailed.md`: 상세 사용 가이드 (한국어)
+- `docs/user-guide-simple.md`: 빠른 시작 가이드 (한국어)
+
+## Multi-Machine Setup
+
+새 머신에서 한 줄로 설치:
+
+```bash
+git clone https://github.com/nori00000/claude-code-setup.git
+cd claude-code-setup
+./scripts/install-hooks.sh && ./scripts/install-shell-integration.sh && source ~/.zshrc
+```
+
+### 머신 간 연속 개발
+
+```
+Mac A에서 cl → 작업 → 세션 종료 (last_machine 자동 갱신)
+  ↓ git push (또는 session-backup이 homelab-orchestration 자동 동기��)
+Mac B에서 cl
+  → [handoff] m4-studio → myproject (2026-04-09T..., branch: main)
+  �� last_machine: m4-air로 갱신
+  → 작업 이어가기
+```
+
+**동기화 경로 (2중):**
+1. `dev-retrospective/data/machines/` — 세션 종료 시 자동 기록, homelab-orchestration으로 push
+2. `.claude/project-profile.md` — cl 실행 시 last_machine 갱신 (git push 시 공유)
+
+**tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>` tmux 세션 자동 생성. SSH 끊겨도 세션 ��지. `CL_NO_TMUX=1 cl`로 비활성화.
 
 ## Shell Aliases
 

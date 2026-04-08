@@ -29,12 +29,11 @@ _cl_tmux_wrap() {
   return 0
 }
 _cl_update_profile() {
-  # Update last_machine and last_session in .claude/project-profile.md
+  # Update last_machine and last_session in .claude/project-profile.md (if exists and writable)
   local profile="\$PWD/.claude/project-profile.md"
   [[ -f "\$profile" ]] || return 0
   local machine="\$(hostname -s 2>/dev/null || echo unknown)"
   local now="\$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  # Update YAML frontmatter fields in-place
   if command -v python3 >/dev/null 2>&1; then
     python3 -c "
 import pathlib, re, sys
@@ -47,15 +46,45 @@ p.write_text(t)
   fi
 }
 _cl_show_handoff() {
-  # Show last machine info if different from current
-  local profile="\$PWD/.claude/project-profile.md"
-  [[ -f "\$profile" ]] || return 0
   local current="\$(hostname -s 2>/dev/null || echo unknown)"
-  local last_m last_s
-  last_m="\$(grep 'last_machine:' "\$profile" 2>/dev/null | head -1 | sed "s/.*: *'\\{0,1\\}//;s/'.*$//")"
-  last_s="\$(grep 'last_session:' "\$profile" 2>/dev/null | head -1 | sed "s/.*: *'\\{0,1\\}//;s/'.*$//")"
-  if [[ -n "\$last_m" && "\$last_m" != "\$current" && "\$last_m" != "" ]]; then
-    echo "\\033[33m[handoff]\\033[0m 이전 머신: \$last_m (\$last_s)"
+  local project="\$(basename "\$PWD")"
+  local shown=false
+
+  # Source 1: dev-retrospective 머신별 last_session.json (homelab-orchestration으로 동기화됨)
+  local machines_dir="\$HOME/.dev-retrospective/data/machines"
+  if [[ -d "\$machines_dir" ]]; then
+    for mdir in "\$machines_dir"/*/; do
+      local mname="\$(basename "\$mdir")"
+      [[ "\$mname" == "\$current" ]] && continue
+      local sess="\$mdir/last_session.json"
+      [[ -f "\$sess" ]] || continue
+      local m_project m_ts m_branch m_dirty m_unpushed
+      m_project="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('project',''))" "\$sess" 2>/dev/null)"
+      # 같은 프로젝트에서 작업했던 머신만 표시
+      if [[ "\$m_project" == "\$project" ]]; then
+        m_ts="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('timestamp',''))" "\$sess" 2>/dev/null)"
+        m_branch="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('git_branch',''))" "\$sess" 2>/dev/null)"
+        m_dirty="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('dirty_files',0))" "\$sess" 2>/dev/null)"
+        m_unpushed="\$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('unpushed_commits',0))" "\$sess" 2>/dev/null)"
+        echo "\\033[33m[handoff]\\033[0m \$mname → \$project (\$m_ts, branch: \$m_branch)"
+        [[ "\$m_dirty" -gt 0 ]] && echo "  ⚠ dirty: \${m_dirty}파일"
+        [[ "\$m_unpushed" -gt 0 ]] && echo "  ⚠ unpushed: \${m_unpushed}커밋"
+        shown=true
+      fi
+    done
+  fi
+
+  # Source 2: project-profile.md fallback (git으로 동기화된 경우)
+  if [[ "\$shown" == false ]]; then
+    local profile="\$PWD/.claude/project-profile.md"
+    if [[ -f "\$profile" ]]; then
+      local last_m last_s
+      last_m="\$(grep 'last_machine:' "\$profile" 2>/dev/null | head -1 | sed "s/.*: *'\\{0,1\\}//;s/'.*$//")"
+      last_s="\$(grep 'last_session:' "\$profile" 2>/dev/null | head -1 | sed "s/.*: *'\\{0,1\\}//;s/'.*$//")"
+      if [[ -n "\$last_m" && "\$last_m" != "\$current" && "\$last_m" != "" ]]; then
+        echo "\\033[33m[handoff]\\033[0m 이전 머신: \$last_m (\$last_s)"
+      fi
+    fi
   fi
 }
 cl() {
