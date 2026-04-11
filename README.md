@@ -9,8 +9,8 @@ Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, ad
 ```bash
 git clone https://github.com/nori00000/claude-code-setup.git
 cd claude-code-setup
-./scripts/install-hooks.sh
 ./scripts/install-shell-integration.sh
+./scripts/install-hooks.sh
 source ~/.zshrc
 ./scripts/init-project.sh /absolute/path/to/your-project
 ```
@@ -33,7 +33,7 @@ source ~/.zshrc
 ```bash
 git clone https://github.com/nori00000/claude-code-setup.git
 cd claude-code-setup
-./scripts/install-hooks.sh && ./scripts/install-shell-integration.sh && source ~/.zshrc
+./scripts/install-shell-integration.sh && ./scripts/install-hooks.sh && source ~/.zshrc
 ```
 
 ### 머신 간 연속 개발
@@ -79,7 +79,7 @@ cl
 | `clp` | Proposal-first mode (3 options before implementing) |
 | `clr` | Review-only mode (no code changes) |
 | `clf` | Quick feedback capture |
-| `cli` | Direct claude launch |
+| `cli` | Direct claude launch (no safety prompt, no handoff display; tmux-wrapped) |
 
 ## Project Setup
 
@@ -108,6 +108,8 @@ The hook `deny-destructive-commands.py` is registered as a Claude Code `PreToolU
 - `git reset --hard`
 - `rsync --delete`
 - `xargs rm`
+- `git push --force` (without `--force-with-lease`)
+- `git checkout -- .` (discards all uncommitted changes)
 
 ## Notes
 

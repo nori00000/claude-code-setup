@@ -17,22 +17,31 @@ fi
 
 read -r -d '' ZSH_BLOCK <<EOF || true
 ${BLOCK_START}
-_cl_tmux_wrap() {
-  # If CL_NO_TMUX is set, or already inside tmux, run inline
+_cl_maybe_tmux() {
+  # Wrap caller function inside a new tmux session (single-shot, auto-execute claude).
+  # Usage inside cl/clp/clr/cli: _cl_maybe_tmux <fn-name> "\$@" && return
   if [[ -n "\${CL_NO_TMUX:-}" ]] || [[ -n "\${TMUX:-}" ]]; then
     return 1
   fi
   if ! command -v tmux >/dev/null 2>&1; then
     return 1
   fi
-  # Sanitize session name (tmux disallows . : in names)
-  local sess="cl-\$(basename "\$PWD" | tr './:' '-')"
-  # -A: attach if exists, create if not. Run cl inside with CL_NO_TMUX=1 to prevent recursion.
+  local fn="\$1"; shift
+  # Sanitize session name (tmux disallows . : in names; also strip spaces and /)
+  local sess="cl-\$(basename "\$PWD" | tr './:/ ' '---_')"
   if tmux has-session -t "\$sess" 2>/dev/null; then
     tmux attach-session -t "\$sess"
-  else
-    tmux new-session -s "\$sess" -c "\$PWD" "CL_NO_TMUX=1 \$SHELL"
+    return 0
   fi
+  # Quote args safely (zsh parameter expansion (q))
+  local args_q="" a
+  for a in "\$@"; do
+    args_q+="\${(q)a} "
+  done
+  # Create detached session, inject the self-rerun with CL_NO_TMUX=1 to prevent recursion
+  tmux new-session -d -s "\$sess" -c "\$PWD"
+  tmux send-keys -t "\$sess" "CL_NO_TMUX=1 \${fn} \${args_q}" Enter
+  tmux attach-session -t "\$sess"
   return 0
 }
 _cl_update_profile() {
@@ -107,7 +116,7 @@ except Exception:
 }
 cl() {
   local prompt="작업은 최대한 자동으로 진행하되, 큰 파일 삭제나 다수 파일 삭제는 먼저 확인하고 진행해줘."
-  if _cl_tmux_wrap; then return; fi
+  _cl_maybe_tmux "\${funcstack[1]}" "\$@" && return
   _cl_show_handoff
   _cl_update_profile
   if [[ \$# -gt 0 ]]; then
@@ -126,7 +135,7 @@ clp() {
 5. 추천 - 딱 1개의 추천안과 이유
 6. 짧게 답할 것 - 질문은 최대 3개, 1/2/3처럼 짧게 고를 수 있게
 내가 고르면 그다음 구현으로 넘어가줘.'
-  if _cl_tmux_wrap; then return; fi
+  _cl_maybe_tmux "\${funcstack[1]}" "\$@" && return
   _cl_show_handoff
   _cl_update_profile
   if [[ \$# -gt 0 ]]; then
@@ -137,7 +146,7 @@ clp() {
 }
 clr() {
   local prompt="코드 변경은 하지 말고, 삭제 위험, 회귀 가능성, 누락 테스트만 리뷰해줘"
-  if _cl_tmux_wrap; then return; fi
+  _cl_maybe_tmux "\${funcstack[1]}" "\$@" && return
   _cl_show_handoff
   _cl_update_profile
   if [[ \$# -gt 0 ]]; then
@@ -171,7 +180,7 @@ print(json.dumps({'ts':sys.argv[1],'satisfaction':int(sys.argv[2]),'helpfulness'
   echo "Feedback saved to \${file}"
 }
 cli() {
-  if _cl_tmux_wrap; then return; fi
+  _cl_maybe_tmux "\${funcstack[1]}" "\$@" && return
   claude "\$@"
 }
 ${BLOCK_END}

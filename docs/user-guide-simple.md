@@ -20,7 +20,7 @@ source ~/.zshrc
 | `clp [작업]` | 제안만 먼저 보기 (3가지 안 제시, 선택 후 구현) |
 | `clr [검토]` | 코드 변경 없이 리스크만 검토 |
 | `clf <1-5> <helpful\|neutral\|not_helpful> <clear\|mixed\|unclear>` | 피드백 기록 → ~/.claude/feedback/ |
-| `cli [옵션]` | Claude Code 직접 실행 (tmux 우회) |
+| `cli [옵션]` | Claude Code 직접 실행 (안전 프롬프트 없음, tmux 적용) |
 
 예: `cl 버그 수정해줘` → tmux 세션 `cl-{폴더명}` 자동 생성 및 실행
 
@@ -51,6 +51,8 @@ source ~/.zshrc
 | `git clean -fdx` | 커밋 미포함 파일 | 수동 터미널에서만 실행 |
 | `git reset --hard` | 로컬 작업 손실 | 수동 터미널에서만 실행 |
 | `rsync --delete` | 백업 실수 | 수동 터미널에서만 실행 |
+| `git push --force` | 원격 브랜치 덮어쓰기 (`--force-with-lease`는 허용) | 수동 터미널에서만 실행 |
+| `git checkout -- .` | 미커밋 변경사항 전체 폐기 | 수동 터미널에서만 실행 |
 
 설치: `./scripts/install-hooks.sh` (자동 등록 to ~/.claude/settings.json)
 

@@ -22,6 +22,7 @@
 | `scripts/init-project.sh` | 프로젝트 초기화 — manifest.json, project-profile.md 생성 |
 | `templates/project-profile.md` | 프로젝트 프로필 템플릿 |
 | `templates/manifest.schema.json` | manifest.json의 JSON Schema |
+| `scripts/open-obsidian-note.sh` | Obsidian 노트 열기 — 볼트 외부 파일은 dev-retrospective 세션 노트로 래핑 |
 
 ---
 
