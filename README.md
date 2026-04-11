@@ -4,25 +4,53 @@ Portable Claude Code setup for multiple machines, with low-friction defaults.
 
 Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, adapted for Claude Code architecture.
 
-## Quick Start
+## Quick Start (새 Mac bootstrap)
+
+한 번에 전체 환경 구성:
 
 ```bash
-git clone https://github.com/nori00000/claude-code-setup.git
-cd claude-code-setup
-./scripts/install-shell-integration.sh
-./scripts/install-hooks.sh
+# 1. GitHub CLI 설치 + 인증 (Private 레포 clone용)
+brew install gh && gh auth login
+
+# 2. 레포 clone
+git clone git@github.com:nori00000/claude-code-setup.git ~/claude-code-setup
+
+# 3. bootstrap 실행
+bash ~/claude-code-setup/scripts/bootstrap-mac.sh
 source ~/.zshrc
-./scripts/init-project.sh /absolute/path/to/your-project
+```
+
+**bootstrap-mac.sh 순서**:
+1. Homebrew + Node.js 설치/확인
+2. Claude Code 설치/업데이트
+3. OMC (oh-my-claudecode) 설치/업데이트
+4. tmux 설치/업데이트
+5. **deny-destructive hook 설치** (auto 모드 활성화 전 안전 장치)
+6. **shell integration 설치** (`cl`/`clp`/`clr`/`clf`/`cli` + tmux 자동 래핑)
+7. `settings.json`에 auto 퍼미션 모드 설정
+8. `dev-setup` alias 등록
+9. tmux `claude` 세션 생성
+
+이후 재셋업은 한 단어: `dev-setup`
+
+### 기존 프로젝트 초기화
+
+```bash
+~/claude-code-setup/scripts/init-project.sh /absolute/path/to/your-project
 ```
 
 ## What this repo contains
 
-- `hooks/deny-destructive-commands.py`: safety hook blocking `rm -rf`, `git reset --hard`, `git clean -fdx`, `find -delete`, `rsync --delete`, `xargs rm`
-- `templates/project-profile.md`: per-project profile template with YAML frontmatter for verification commands
+- `scripts/bootstrap-mac.sh`: 새 Mac 전체 셋업 (Homebrew → Claude Code → OMC → tmux → hook → aliases → auto 모드)
+- `hooks/deny-destructive-commands.py`: safety hook blocking `rm -rf`, `git reset --hard`, `git clean -fdx`, `find -delete`, `rsync --delete`, `xargs rm`, `git push --force`, `git checkout -- .`
+- `templates/project-profile.md`: per-project profile template with YAML frontmatter
 - `templates/manifest.schema.json`: JSON Schema for managed harness manifests
 - `scripts/init-project.sh`: project initializer with blueprint detection (web-app/python-service/generic)
 - `scripts/install-shell-integration.sh`: shell aliases `cl`/`clp`/`clr`/`clf`/`cli` with tmux wrapping and machine handoff
-- `scripts/install-hooks.sh`: one-command hook installer (`--dry-run`, `--uninstall`)
+- `scripts/install-hooks.sh`: hook installer (`--dry-run`, `--uninstall`)
+- `scripts/check-cmux-health.sh`: cmux + claude 건강 체크 (0/10/20 exit code)
+- `scripts/sync-current-branch.sh`: branch-aware handoff helper
+- `scripts/ssh-main-mac-project.sh`: 기준 Mac SSH + 프로젝트 이동
 - `docs/user-guide-detailed.md`: 상세 사용 가이드 (한국어)
 - `docs/user-guide-simple.md`: 빠른 시작 가이드 (한국어)
 
