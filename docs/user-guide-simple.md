@@ -119,6 +119,24 @@ $ cl "작업 이어가기"
 - **2순위**: `.claude/project-profile.md`의 `last_machine` (cl마다 자동 갱신)
 - `.claude/`가 gitignore여도 1순위로 핸드오프 작동
 
+## 5단계 운영 플로우
+
+| # | 시나리오 | 명령 |
+|---|----------|------|
+| 1 | 평소 작업 시작 | `cl "작업"` |
+| 2 | 다른 Mac에서 이어받기 | `./scripts/sync-current-branch.sh && cl "작업"` |
+| 3 | 스마트폰에서 | `ssh studio && cd <프로젝트> && ./scripts/check-cmux-health.sh && cl "작업"` |
+| 4 | cmux 불가 시 | `CL_NO_TMUX=1 cl "작업"` |
+| 5 | Mac 간 handoff | `./scripts/sync-current-branch.sh` 후 새 Mac에서 `cl` |
+
+## 헬퍼 스크립트
+
+| 스크립트 | 기능 | exit code |
+|----------|------|-----------|
+| `check-cmux-health.sh` | cmux + claude 건강 체크 | 0=healthy, 10=fallback, 20=unhealthy |
+| `sync-current-branch.sh` | 현재 브랜치 fetch+switch+pull --ff-only | 0=OK |
+| `ssh-main-mac-project.sh` | 기준 Mac SSH + 프로젝트 이동 | — |
+
 ## 문제 해결
 
 **tmux 우회하고 싶을 때**: `CL_NO_TMUX=1 cl [작업]`

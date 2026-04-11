@@ -71,6 +71,24 @@ cl
 
 **tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>` tmux 세션 자동 생성. SSH 끊겨도 세션 유지. `CL_NO_TMUX=1 cl`로 비활성화.
 
+## 5단계 운영 플로우
+
+| # | 시나리오 | 명령 |
+|---|----------|------|
+| 1 | 평소 작업 시작 | `cl "작업"` |
+| 2 | 다른 Mac에서 이어받기 | `./scripts/sync-current-branch.sh && cl "작업"` |
+| 3 | 스마트폰에서 | `ssh studio` → `cd <프로젝트>` → `./scripts/check-cmux-health.sh` → `cl` |
+| 4 | cmux 불가 시 | `CL_NO_TMUX=1 cl "작업"` |
+| 5 | Mac 간 handoff | `./scripts/sync-current-branch.sh` 후 새 Mac에서 `cl` |
+
+## Helper Scripts
+
+| 스크립트 | 기능 | exit code |
+|----------|------|-----------|
+| `check-cmux-health.sh` | cmux + claude 건강 체크 | 0=healthy, 10=fallback, 20=unhealthy |
+| `sync-current-branch.sh` | 현재 브랜치 fetch+switch+pull --ff-only | 0=OK |
+| `ssh-main-mac-project.sh` | 기준 Mac SSH + 프로젝트 자동 이동 | — |
+
 ## Shell Aliases
 
 | Alias | Purpose |

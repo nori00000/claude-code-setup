@@ -878,9 +878,415 @@ cp hooks/deny-destructive-commands.py ~/.claude/hooks/
 
 ---
 
-## 8. 피드백 시스템
+## 8. 5단계 운영 워크플로 (codex-setup과 정렬)
 
-### 8.1 clf 명령어 사용법
+### 개요
+
+Claude Code의 멀티머신 개발 환경에서 효율적으로 작업하기 위한 통일된 5단계 워크플로입니다. **cmux** (멀티 머신 관리), **SSH** (원격 접속), **branch-aware handoff** (브랜치 동기화)를 조합해 어디서나 일관되게 작업할 수 있습니다.
+
+### 8.1 5단계 워크플로
+
+#### 1단계: 평소 작업 시작 — 기준 Mac에서 cmux + cl
+
+기준 Mac (예: M4 Studio, 상시 운영)에서 프로젝트 작업:
+
+```bash
+# 기준 Mac (스튜디오)
+$ cd ~/projects/salpim-web
+
+# cl 실행 (자동으로 tmux 세션 생성, 또는 기존 세션 재접속)
+$ cl "기능 구현"
+
+# 작업 진행 → git push origin <현재-브랜치>
+# 세션 백그라운드 유지 (SSH 끊겨도 안전)
+```
+
+**언제**: 매일 주로 집 스튜디오에서 작업할 때
+**도구**: cmux (선택), cl (필수), tmux (자동)
+
+---
+
+#### 2단계: 다른 Mac에서 이어받기 — cmux 또는 handoff + sync-current-branch.sh
+
+기준 Mac의 작업을 다른 MacBook (M1 Pro, M4 Air 등)에서 이어받기:
+
+**방법 A: cmux 사용** (권장, 가장 간단)
+```bash
+# M4 Air에서
+$ cms   # alias: cmux m4-studio로 접속
+
+# 이미 스튜디오 머신에 연결됨
+studio$ cd ~/projects/salpim-web
+
+# 기존 tmux 세션 재접속
+studio$ tmux attach -t cl-salpim-web
+
+# 또는 새 작업 시작
+studio$ cl "이어서 작업"
+```
+
+**방법 B: SSH + sync-current-branch.sh 사용** (cmux 없을 때)
+```bash
+# M4 Air에서
+$ ssh studio
+
+# 프로젝트로 이동
+studio$ cd ~/projects/salpim-web
+
+# 현재 브랜치 자동 감지 & 동기화
+studio$ ./scripts/sync-current-branch.sh
+
+# 또는 cmux 불가능한 상황에서
+studio$ ./scripts/sync-current-branch.sh --branch feature/xyz
+
+# 작업 이어가기
+studio$ cl "이어서 작업"
+```
+
+**언제**: 한 기준 Mac에서 다른 MacBook으로 전환할 때
+**도구**: cmux (선택) 또는 ssh-main-mac-project.sh, sync-current-branch.sh
+
+---
+
+#### 3단계: 스마트폰에서 긴급 수정 — plain SSH + check-cmux-health.sh
+
+스마트폰 (iPad, iPhone)에서 긴급 버그 수정:
+
+```bash
+# 스마트폰 SSH 앱 (Blink, Termius, 기본 터미널)
+$ ssh studio
+
+# 프로젝트로 이동
+studio$ cd ~/projects/salpim-web
+
+# 환경 건강 확인 (tmux 가능 여부 등)
+studio$ ./scripts/check-cmux-health.sh
+
+# 결과에 따라:
+# - exit 0 (fully healthy) → cl 바로 실행
+# - exit 10 (fallback-ready) → CL_NO_TMUX=1 cl 사용
+# - exit 20 (claude unhealthy) → PATH/설치 확인
+
+studio$ cl "긴급 버그 수정"
+```
+
+**언제**: 스마트폰에서 긴급 수정이 필요할 때
+**도구**: plain SSH, check-cmux-health.sh, CL_NO_TMUX=1 환경변수
+
+---
+
+#### 4단계: 같은 Mac 일반 터미널에서 — CL_NO_TMUX=1 cl
+
+cmux가 불가능한 상황 (tmux 중단, daemon 재시작 중 등)에서도 작업:
+
+```bash
+# 같은 Mac의 다른 터미널 탭에서
+$ CL_NO_TMUX=1 cl "작업"
+
+# 또는 환경변수 설정 후 반복 사용
+$ export CL_NO_TMUX=1
+$ cl "작업1"
+$ cl "작업2"
+$ unset CL_NO_TMUX
+```
+
+**언제**: tmux 불가능, 일반 터미널에서만 작업할 때
+**도구**: CL_NO_TMUX=1 환경변수
+
+---
+
+#### 5단계: Mac 간 handoff — sync-current-branch.sh + cl
+
+기준 Mac의 작업을 같은 조직의 다른 Mac으로 정확하게 넘기기 (feature 브랜치 유지):
+
+```bash
+# Mac A (M4 Studio)에서 작업 마무리
+mac-a$ git status --short
+mac-a$ git push origin $(git branch --show-current)
+# → feature/login-fix 푸시됨
+
+---
+
+# Mac B (M1 Pro)에서 이어받기
+mac-b$ cd ~/projects/salpim-web
+
+# 현재 브랜치 자동 감지 후 동기화
+mac-b$ ./scripts/sync-current-branch.sh
+
+# 또는 특정 브랜치 명시
+mac-b$ ./scripts/sync-current-branch.sh --branch feature/login-fix
+
+# 상태 확인
+mac-b$ git status
+
+# 작업 이어가기
+mac-b$ cl "feature 계속"
+```
+
+**언제**: 여러 MacBook 간에 같은 feature 브랜치 작업을 이어받을 때
+**도구**: sync-current-branch.sh, git
+
+---
+
+### 8.2 신규 헬퍼 스크립트
+
+#### check-cmux-health.sh — Claude + cmux 환경 건강 체크
+
+Claude Code와 cmux 환경이 정상인지 빠르게 진단합니다.
+
+**위치**:
+```
+~/claude-code-setup/scripts/check-cmux-health.sh
+```
+
+**Exit Codes**:
+| 코드 | 상태 | 다음 단계 |
+|------|------|---------|
+| 0 | fully healthy | `cl 바로 실행 가능` |
+| 10 | fallback-ready | `CL_NO_TMUX=1 cl 사용` (cmux 불가, cl 함수는 작동) |
+| 20 | claude unhealthy | PATH/설치 확인 필요 (claude 명령어 자체 실패) |
+
+**진단 항목**:
+1. **Shell** — pwd, SHELL, tmux 상태, cmux 환경변수
+2. **Claude Code** — `which claude`, `claude --version`, `cl` 함수 로드 여부
+3. **Project** — `.claude/project-profile.md` 존재, git 브랜치, dirty 파일 개수
+4. **CMUX** — cmux 소켓, `cmux ping`, `cmux list-workspaces`
+
+**사용법**:
+```bash
+./scripts/check-cmux-health.sh
+
+# 결과 예시:
+# == Shell ==
+# pwd: /Users/leesangmin/projects/salpim-web
+# shell: /bin/zsh
+# tmux: inactive
+# 
+# == Claude Code ==
+# $ which claude
+# /usr/local/bin/claude
+# $ claude --version
+# Claude Code 0.46.0
+# cl function: loaded from ~/.zshrc
+# 
+# == Project ==
+# project-profile: present
+# git branch: feature/login-fix
+# git dirty: 0 files
+# 
+# == CMUX ==
+# $ cmux ping
+# OK
+# $ cmux list-workspaces
+# m4-studio    ... (workspace list)
+#
+# == Next Step ==
+# Healthy. Continue with:
+#   cl "작업 내용"
+#   tmux attach -t cl-$(basename $PWD)
+```
+
+**Exit 코드 해석**:
+```bash
+./scripts/check-cmux-health.sh
+echo $?
+
+# 0 → fully healthy (cl 바로 실행)
+# 10 → fallback-ready (CL_NO_TMUX=1 cl 사용)
+# 20 → claude unhealthy (설치 확인 필요)
+```
+
+---
+
+#### sync-current-branch.sh — Branch-Aware Handoff 자동화
+
+현재 브랜치를 자동으로 감지하고 `git fetch → git switch → git pull --ff-only` 을 순차 실행합니다.
+
+**위치**:
+```
+~/claude-code-setup/scripts/sync-current-branch.sh
+```
+
+**동작**:
+1. 현재 브랜치 자동 감지 (`git branch --show-current`)
+2. 원격에서 최신 정보 가져오기 (`git fetch origin`)
+3. 브랜치로 이동 (`git switch <branch>`)
+4. Fast-forward 업데이트 (`git pull --ff-only origin <branch>`)
+
+**사용법 — 기본 (대부분의 경우)**:
+```bash
+./scripts/sync-current-branch.sh
+
+# 예시 (현재 브랜치가 feature/xyz일 때):
+# $ git fetch origin
+# $ git switch feature/xyz
+# $ git pull --ff-only origin feature/xyz
+# Already up to date.
+```
+
+**사용법 — 옵션**:
+
+```bash
+# 특정 브랜치 명시
+./scripts/sync-current-branch.sh --branch feature/login-fix
+
+# 다른 원격 지정
+./scripts/sync-current-branch.sh --remote upstream
+
+# 둘 다 지정
+./scripts/sync-current-branch.sh --remote upstream --branch develop
+
+# Dry-run (명령 미실행, 출력만)
+./scripts/sync-current-branch.sh --print
+
+# 예시:
+# $ git fetch origin
+# $ git switch feature/login-fix
+# $ git pull --ff-only origin feature/login-fix
+```
+
+**도움말**:
+```bash
+./scripts/sync-current-branch.sh --help
+```
+
+---
+
+#### ssh-main-mac-project.sh — 기준 Mac SSH + 프로젝트 자동 이동
+
+기준 Mac으로 SSH 접속 후 자동으로 프로젝트 디렉토리로 이동합니다. 원격 명령 실행도 가능합니다.
+
+**위치**:
+```
+~/claude-code-setup/scripts/ssh-main-mac-project.sh
+```
+
+**기본 사용법**:
+
+```bash
+# 기준 Mac 호스트와 프로젝트 경로 환경변수 설정
+export MAIN_MAC_HOST="m4-studio"
+export MAIN_MAC_PROJECT_PATH="~/projects/claude-code-setup"
+
+# SSH 접속 + 프로젝트 이동
+./scripts/ssh-main-mac-project.sh
+
+# 또는 옵션으로 직접 지정
+./scripts/ssh-main-mac-project.sh --host m4-studio --project ~/projects/claude-code-setup
+```
+
+**옵션**:
+
+| 옵션 | 설명 | 필수 |
+|------|------|------|
+| `--host HOST` | SSH 호스트 또는 alias (예: `m4-studio`) | Yes (또는 `MAIN_MAC_HOST` 환경변수) |
+| `--project PATH` | 기준 Mac의 프로젝트 경로 (예: `~/projects/salpim-web`) | Yes (또는 `MAIN_MAC_PROJECT_PATH` 환경변수) |
+| `--cmd COMMAND` | 원격에서 실행할 명령 (선택) | No |
+| `--print` | SSH 명령만 출력 (dry-run) | No |
+| `-h, --help` | 도움말 표시 | No |
+
+**예시 1: SSH 접속 + 로그인 셸**
+
+```bash
+export MAIN_MAC_HOST="m4-studio"
+export MAIN_MAC_PROJECT_PATH="~/projects/salpim-web"
+
+./scripts/ssh-main-mac-project.sh
+
+# 결과: SSH로 m4-studio 접속 → ~/projects/salpim-web 디렉토리로 이동 → 로그인 셸 시작
+```
+
+**예시 2: SSH 접속 + 원격 명령 실행**
+
+```bash
+./scripts/ssh-main-mac-project.sh \
+  --host m4-studio \
+  --project ~/projects/salpim-web \
+  --cmd './scripts/check-cmux-health.sh && cl "원격 작업"'
+
+# 결과: SSH로 접속 → 프로젝트 이동 → 원격 명령 실행 → 다시 로그인 셸로 돌아옴
+```
+
+**예시 3: Dry-run (명령 확인만)**
+
+```bash
+./scripts/ssh-main-mac-project.sh --host m4-studio --project ~/projects/salpim-web --print
+
+# 출력:
+# ssh m4-studio 'cd ~/.../salpim-web && exec zsh -l'
+```
+
+**도움말**:
+```bash
+./scripts/ssh-main-mac-project.sh --help
+```
+
+---
+
+### 8.3 codex-setup과의 관계
+
+**claude-code-setup**과 **codex-setup**은 같은 운영 철학을 공유하며, 같은 머신에 동시에 설치해서 사용할 수 있습니다.
+
+#### 공유 철학
+
+| 항목 | claude-code-setup | codex-setup |
+|------|-------------------|------------|
+| **멀티 머신 관리** | cmux + SSH + 브랜치 동기화 | cmux + SSH + 브랜치 동기화 |
+| **자동 세션 래핑** | cl (Claude Code) | cx/omx (Codex/OMC) |
+| **헬퍼 스크립트** | check-cmux-health.sh, sync-current-branch.sh | 동일 (공유 가능) |
+| **Handoff 방식** | Branch-aware (feature 브랜치 유지) | Branch-aware (feature 브랜치 유지) |
+
+#### 차이점
+
+| 항목 | claude-code-setup | codex-setup |
+|------|-------------------|------------|
+| **실행 명령** | `cl` (Claude Code) | `cx` (Codex) 또는 `omx` (OMC) |
+| **프로필** | `.claude/project-profile.md` | `.codex/project-profile.md` |
+| **Hook** | `~/.claude/hooks/` | `~/.codex/hooks/` |
+
+#### 같은 머신에 둘 다 설치
+
+```bash
+# 클론 및 설치
+git clone https://github.com/nori00000/claude-code-setup.git ~/claude-code-setup
+git clone https://github.com/your-org/codex-setup.git ~/codex-setup
+
+# 각각 설치
+~/claude-code-setup/scripts/install-shell-integration.sh
+~/codex-setup/scripts/install-shell-integration.sh
+
+# zshrc 소싱
+source ~/.zshrc
+
+# 확인
+cl --help    # Claude Code
+cx --help    # Codex
+omx --help   # OMC
+```
+
+#### 같은 cmux 세션 사용 가능
+
+```bash
+# cmux 세션 내에서 두 도구 모두 사용 가능
+cms  # m4-studio 접속
+
+studio$ cd ~/projects/salpim-web
+
+# Claude Code 작업
+studio$ cl "기능 A 구현"
+
+# Codex 작업
+studio$ cx "기능 B 검토"
+
+# OMC 자동화
+studio$ omx "테스트 실행"
+```
+
+---
+
+## 9. 피드백 시스템
+
+### 9.1 clf 명령어 사용법
 
 Claude Code 제안에 대한 피드백을 기록합니다.
 
@@ -895,7 +1301,7 @@ clf 4 helpful mixed "약간 느림"
 clf 2 not_helpful unclear "완전 다른 방향"
 ```
 
-### 8.2 피드백 저장 구조
+### 9.2 피드백 저장 구조
 
 ```bash
 ~/.claude/feedback/
@@ -909,7 +1315,7 @@ clf 2 not_helpful unclear "완전 다른 방향"
 {"ts":"2026-04-09T10:30:00Z","satisfaction":5,"helpfulness":"helpful","clarity":"clear","comment":""}
 ```
 
-### 8.3 피드백 분석
+### 9.3 피드백 분석
 
 ```bash
 # 최근 피드백 보기
@@ -924,9 +1330,9 @@ cat ~/.claude/feedback/*.jsonl | jq '.helpfulness' | grep -c helpful
 
 ---
 
-## 9. OMC 연동
+## 10. OMC 연동
 
-### 9.1 검증 모듈과의 통합
+### 10.1 검증 모듈과의 통합
 
 `.claude/project-profile.md`의 Frontmatter는 oh-my-claudecode의 **verification module**이 자동으로 읽습니다.
 
@@ -940,7 +1346,7 @@ verification:
 ---
 ```
 
-### 9.2 OMC에서 자동 검증
+### 10.2 OMC에서 자동 검증
 
 OMC의 ralph, autopilot, ultrawork 등이 작업 후 자동으로 다음을 실행합니다:
 
@@ -967,7 +1373,7 @@ cl "API 엔드포인트 추가해줘"
 # 모든 검증 통과 → "작업 완료" 선언
 ```
 
-### 9.3 AGENTS.md 생성
+### 10.3 AGENTS.md 생성
 
 프로젝트 초기화 후, OMC의 `deepinit`으로 계층적 AGENTS.md 생성:
 
@@ -983,7 +1389,7 @@ cd /your/project
 #   - 의존성 맵
 ```
 
-### 9.4 verification 명령어 테스트
+### 10.4 verification 명령어 테스트
 
 OMC 연동 전에 검증 명령어가 제대로 작동하는지 확인:
 
@@ -1005,7 +1411,7 @@ npm run dev & sleep 5 && curl http://localhost:3000/health; pkill -f "npm run de
 
 ---
 
-## 10. FAQ / 문제 해결
+## 11. FAQ / 문제 해결
 
 ### Q1: 설치 후 `cl` 명령어를 찾을 수 없습니다
 
@@ -1252,7 +1658,7 @@ tmux select-window -t main:project-b
 
 ---
 
-## 11. 빠른 참고
+## 12. 빠른 참고
 
 ### 한 번에 모든 머신에 설치
 
@@ -1306,7 +1712,7 @@ done
 
 ---
 
-## 12. 참고 자료
+## 13. 참고 자료
 
 - [원본 codex-setup 저장소](https://github.com/nori00000/codex-setup)
 - [oh-my-claudecode 공식 문서](https://github.com/oh-my-claudecode/oh-my-claudecode)
@@ -1315,7 +1721,7 @@ done
 
 ---
 
-## 13. 변경 이력
+## 14. 변경 이력
 
 ### v1.0 (2026-04-09)
 
