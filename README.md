@@ -1,8 +1,46 @@
 # Claude Code Setup
 
-Portable Claude Code setup for multiple machines, with low-friction defaults.
+멀티머신 Claude Code 환경의 **단일 진실원천(SST)**. Mac/Windows 양쪽 트랙을 한 레포에서 관리.
 
 Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, adapted for Claude Code architecture.
+
+---
+
+## 빠른 진입
+
+| 목적 | 파일 |
+|---|---|
+| 현재 머신 인벤토리 (Mac/Windows/기타) | [`FLEET.md`](FLEET.md) |
+| **Windows 셋업 가이드 (v1.0)** | [`playbooks/windows-setup.md`](playbooks/windows-setup.md) |
+| macOS 셋업 (현행) | [`docs/user-guide-detailed.md`](docs/user-guide-detailed.md), [`docs/user-guide-simple.md`](docs/user-guide-simple.md) |
+| macOS 플레이북 v1.0 (작성 예정) | [`playbooks/macos-setup.md`](playbooks/macos-setup.md) |
+| 새 Windows 머신 원라이너 | `pwsh -File scripts/bootstrap-windows.ps1` |
+| 새 Mac 원라이너 | `bash scripts/bootstrap-mac.sh` |
+| 진단만 (Windows) | `pwsh -File scripts/diagnose-windows.ps1` |
+| 다른 AI에게 셋업 위임 (Windows) | [`prompts/master-setup-prompt.md`](prompts/master-setup-prompt.md) |
+| 공통 settings.json (모든 머신) | [`settings/user-settings.json`](settings/user-settings.json) |
+| 변경 이력 | [`CHANGELOG.md`](CHANGELOG.md) |
+
+### 새 Windows 머신 30초 부트스트랩
+
+```powershell
+# 사전: winget install --id GitHub.cli && gh auth login
+gh repo clone nori00000/claude-code-setup $env:USERPROFILE\projects\claude-code-setup
+pwsh -File $env:USERPROFILE\projects\claude-code-setup\scripts\bootstrap-windows.ps1
+```
+
+`-DryRun` 플래그로 변경 없이 미리 확인 가능. 자세한 흐름은 [`playbooks/windows-setup.md`](playbooks/windows-setup.md) 참고.
+
+### 안전망 구조
+
+| 레이어 | Mac | Windows |
+|---|---|---|
+| Auto mode (classifier) | ✅ `settings/user-settings.json` | ✅ 동일 |
+| Deny 화이트리스트 6개 | ✅ 동일 | ✅ 동일 |
+| Python PreToolUse hook | ✅ `hooks/deny-destructive-commands.py` | (v1.0 미적용 — 다음 라운드) |
+| Allow 화이트리스트 9개 | ✅ 동일 | ✅ 동일 |
+
+---
 
 ## Quick Start (새 Mac bootstrap)
 
