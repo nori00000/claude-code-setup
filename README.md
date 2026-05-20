@@ -12,6 +12,7 @@ Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, ad
 |---|---|
 | 현재 머신 인벤토리 (Mac/Windows/기타) | [`FLEET.md`](FLEET.md) |
 | **Windows 셋업 가이드 (v1.0)** | [`playbooks/windows-setup.md`](playbooks/windows-setup.md) |
+| WSL tmux + yazi 작업환경 | [`playbooks/tmux-yazi-wsl.md`](playbooks/tmux-yazi-wsl.md), [`docs/tmux-yazi-beginner-handout.html`](docs/tmux-yazi-beginner-handout.html) |
 | macOS 셋업 (현행) | [`docs/user-guide-detailed.md`](docs/user-guide-detailed.md), [`docs/user-guide-simple.md`](docs/user-guide-simple.md) |
 | macOS 플레이북 v1.0 (작성 예정) | [`playbooks/macos-setup.md`](playbooks/macos-setup.md) |
 | 새 Windows 머신 원라이너 | `pwsh -File scripts/bootstrap-windows.ps1` |
@@ -80,6 +81,7 @@ source ~/.zshrc
 ## What this repo contains
 
 - `scripts/bootstrap-mac.sh`: 새 Mac 전체 셋업 (Homebrew → Claude Code → OMC → tmux → hook → aliases → auto 모드)
+- `scripts/setup-tmux-yazi.sh`: WSL Ubuntu에서 tmux + yazi 작업환경 설치
 - `hooks/deny-destructive-commands.py`: safety hook blocking `rm -rf`, `git reset --hard`, `git clean -fdx`, `find -delete`, `rsync --delete`, `xargs rm`, `git push --force`, `git checkout -- .`
 - `templates/project-profile.md`: per-project profile template with YAML frontmatter
 - `templates/manifest.schema.json`: JSON Schema for managed harness manifests
@@ -91,6 +93,7 @@ source ~/.zshrc
 - `scripts/ssh-main-mac-project.sh`: 기준 Mac SSH + 프로젝트 이동
 - `docs/user-guide-detailed.md`: 상세 사용 가이드 (한국어)
 - `docs/user-guide-simple.md`: 빠른 시작 가이드 (한국어)
+- `docs/tmux-yazi-beginner-handout.html`: 초보자/중학생 대상 tmux + yazi 교육자료
 
 ## Multi-Machine Setup
 
