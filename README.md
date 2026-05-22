@@ -13,6 +13,7 @@ Ported from [codex-setup](https://github.com/nori00000/codex-setup) concepts, ad
 | 현재 머신 인벤토리 (Mac/Windows/기타) | [`FLEET.md`](FLEET.md) |
 | **Windows 셋업 가이드 (v1.0)** | [`playbooks/windows-setup.md`](playbooks/windows-setup.md) |
 | WSL tmux + yazi 작업환경 | [`playbooks/tmux-yazi-wsl.md`](playbooks/tmux-yazi-wsl.md), [`docs/tmux-yazi-beginner-handout.html`](docs/tmux-yazi-beginner-handout.html) |
+| **Claude Code + Codex tmux 워크플로우 (2026-05)** | [`playbooks/tmux-claude-code-workflow.md`](playbooks/tmux-claude-code-workflow.md) — 초보 친화 매뉴얼, 단축키 표, 원격/모바일 접속 포함 |
 | macOS 셋업 (현행) | [`docs/user-guide-detailed.md`](docs/user-guide-detailed.md), [`docs/user-guide-simple.md`](docs/user-guide-simple.md) |
 | macOS 플레이북 v1.0 (작성 예정) | [`playbooks/macos-setup.md`](playbooks/macos-setup.md) |
 | 새 Windows 머신 원라이너 | `pwsh -File scripts/bootstrap-windows.ps1` |
