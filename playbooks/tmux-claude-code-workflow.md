@@ -627,34 +627,16 @@ Windows Terminal 설정 UI 우상단의 "JSON 파일 열기" 또는 `Ctrl + Shif
 
 매일 쓰면 손에 익습니다. **3초 안에 tmux 안**.
 
-### 10.2 이걸 더 줄이기 — Windows Terminal 프로필 자동화 (한 번 셋업)
+### 10.4 시작 메뉴/단축키로 더 줄이기
 
-매번 `wsl` → `tmux a` 치기 귀찮으면 Windows Terminal에 "탭 열면 바로 tmux"로 설정.
-
-**방법**:
-
-1. Windows Terminal 열고 `Ctrl + ,` (설정)
-2. 좌측에서 "Ubuntu" 프로필 선택 (또는 "+ 새 프로필 추가" → "WSL Ubuntu")
-3. **명령줄(Command line)** 칸:
-   ```
-   wsl.exe -d Ubuntu -- bash -lc "tmux new -As main"
-   ```
-4. **시작 디렉토리**: 비워두기 (또는 `\\wsl$\Ubuntu\home\bolt1`)
-5. **아이콘**, **이름** "Claude" 등 원하는 대로
-6. 저장
-
-이제 Windows Terminal에서 그 프로필 탭을 열면 **자동으로 WSL + tmux main 세션**에 들어갑니다.
-
-**기본 탭으로 지정** (선택):
-- 설정 → 시작 → 기본 프로필 → 방금 만든 프로필 선택
-- 이제 Windows Terminal 그냥 띄우기만 해도 tmux 안
-
-### 10.3 시작 메뉴/단축키로 더 줄이기
+§10.1의 GUI 셋업이 끝났다는 전제로:
 
 - Windows Terminal을 **작업 표시줄에 고정** → `Win + 1` (또는 2/3...) 한 번에 열림
-- 부팅 직후 자동 시작하려면 `시작프로그램` 폴더 (`Win+R` → `shell:startup`)에 Windows Terminal 바로가기 넣기
+- 부팅 직후 자동 시작: `시작프로그램` 폴더 (`Win+R` → `shell:startup`)에 Windows Terminal 바로가기 넣기
+- 같은 창에서 새 Claude 탭: **`Ctrl + Shift + 1`** (§10.1에서 이미 설정됨)
+- 같은 창에서 PowerShell 탭: **`Ctrl + Shift + 2`**
 
-### 10.4 새 세션 / 기존 세션 빨리 구분하기
+### 10.5 새 세션 / 기존 세션 빨리 구분하기
 
 ```bash
 tmux ls
@@ -666,7 +648,7 @@ tmux ls
 - 여러 개면 → `tmux a -t main`
 - 둘 다 어차피 살아 있는 거면 `tmux new -As main` 한 줄로 안전 (있으면 attach, 없으면 새로)
 
-### 10.5 끝낼 때 (퇴근/취침)
+### 10.6 끝낼 때 (퇴근/취침)
 
 PowerShell 창을 **그냥 X로 닫아도 됩니다**. linger 켜져 있으니 tmux와 안의 Claude Code/Codex/서버 모두 살아 있음. 다음에 들어오면 그대로.
 
