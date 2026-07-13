@@ -1,0 +1,10 @@
+.omc/
+.DS_Store
+__pycache__/
+*.pyc
+
+# Project-level .claude — track settings.json only
+.claude/settings.local.json
+.claude/history.jsonl
+.claude/projects/
+.claude/todos/
