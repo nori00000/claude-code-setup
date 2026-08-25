@@ -6,8 +6,11 @@
 
 ### Verified — 문서-코드 정합성 정기 재검증 (2026-07-27 ~ 2026-08-25)
 - 이 기간 doc-sync 에이전트가 전 범위(README·FLEET·PROJECT·NOTICE·PUBLICATION_REVIEW·scripts/·hooks/·settings/·templates/·docs/·playbooks/)를 반복 재검증 — 코드/문서 변경 0건, 신규 MISMATCH·STALE_DOC·UNDOCUMENTED 0건.
-- 유일한 미해결 항목: `FLEET.md`의 `mac-m4-studio`(표 ID) vs `m4-studio`(`hostname -s` 실측) 불일치. 2026-07-19 발견, homelab-orchestration·dev-retrospective까지 걸친 크로스레포 리네임이라 사용자 SSOT 결정 대기.
+- 과거 미해결 항목이었던 `FLEET.md`의 `mac-m4-studio`(표 ID) vs `m4-studio`(`hostname -s` 실측) 불일치는 2026-08-25 정본을 `hostname -s` 실측값으로 확정하고 이 레포 안의 표기를 통일하여 해소 (아래 2026-08-25 항목 참고).
 - (일별 "변경 없음" 재검증 기록 ~20건을 이 항목 1건으로 압축 — 상세 이력은 git.)
+
+### Fixed — 문서-코드 정합성 검증 (2026-08-25)
+- 호스트명 표기 SSOT 불일치 정정: 정본을 실제 `hostname -s` 값으로 확정하고, `FLEET.md`(현재 활성 머신 표·은퇴 표·DOC-SYNC 노트)·`playbooks/macos-setup.md`(머신 ID 서술)에 남아 있던 `mac-m4-studio`→`m4-studio`, `mac-m1-mini`→`m1-mini` 구표기를 정정. `FLEET.md` 명명 규칙 코드블록의 예시 표기와 이 CHANGELOG의 과거 로그 인용문(2026-07-19~22 항목)은 인용 무결성을 위해 원문 보존.
 
 ### Fixed — 문서-코드 정합성 검증 (2026-07-22)
 - `README.md` — "안전망 구조" 표가 Mac/Windows 모두 "Allow 11개·Deny 6개로 동일"이라 표기했던 것을 정정. 실측(`scripts/bootstrap-mac.sh:129-136`, `scripts/install-hooks.sh:180-208`)상 Mac은 allow 15개(도구/카테고리 단위)를 직접 기록하고 deny 배열은 아예 생성하지 않음(Python hook이 대체) — 11개/6개는 Windows 트랙(`settings/user-settings.json`) 전용값. 같은 README의 Quick Start 섹션(line 80)과 `docs/user-guide-detailed.md:59`는 이미 Mac의 정확한 15개 목록을 기술하고 있어, 표만 내부적으로 모순됐던 것을 표만 정정
