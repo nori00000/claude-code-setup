@@ -29,4 +29,4 @@
 
 ## 머신 ID
 
-`FLEET.md` 참고. 현재 활성: `mac-m4-studio` (셋업 중).
+`FLEET.md` 참고. 현재 활성: `mac-m4-studio` (✅ Active). <!-- DOC-SYNC: 2026-07-20 정정 — 이전 "(셋업 중)"은 FLEET.md가 2026-07-19에 이미 "🔧 Setup 중"→"✅ Active"로 갱신한 뒤에도 반영되지 않아 stale이었음. SST는 FLEET.md이므로 상태 변경 시 이 줄도 함께 갱신 필요. -->

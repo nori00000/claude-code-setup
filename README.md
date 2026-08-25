@@ -42,12 +42,14 @@ pwsh -File $env:USERPROFILE\projects\claude-code-setup\scripts\bootstrap-windows
 
 ### 안전망 구조
 
-| 레이어 | Mac | Windows |
+> Mac과 Windows는 서로 다른 방식으로 안전망을 구성한다 (공유 설정 파일이 아니라 각자의 설치 스크립트가 값을 직접 기록) — 아래 표는 각 트랙의 실제 값.
+
+| 레이어 | Mac (`bootstrap-mac.sh`) | Windows (`settings/user-settings.json`) |
 |---|---|---|
-| Auto mode (classifier) | ✅ `settings/user-settings.json` | ✅ 동일 |
-| Deny 화이트리스트 6개 | ✅ 동일 | ✅ 동일 |
+| Auto mode (classifier) | ✅ `~/.claude/settings.json`에 직접 기록 | ✅ `settings/user-settings.json` |
+| Allow 화이트리스트 | ✅ 15개 (도구/카테고리 단위: `Read`,`Write`,`Edit`,`Bash`,`Glob`,`Grep`,`Agent`,`Skill`,`ToolSearch`,`WebFetch`,`WebSearch`,`mcp__filesystem__*`,`mcp__github__*`,`mcp__git__*`,`mcp__fetch__*`) | ✅ 11개 (git 명령 단위 — 아래 "What this repo contains" 참고) |
+| Deny 화이트리스트 | ❌ 없음 (Python hook이 역할 대체) | ✅ 6개 |
 | Python PreToolUse hook | ✅ `hooks/deny-destructive-commands.py` | (v1.0 미적용 — 다음 라운드) |
-| Allow 화이트리스트 9개 | ✅ 동일 | ✅ 동일 |
 
 ---
 
