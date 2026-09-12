@@ -34,13 +34,13 @@ source ~/.zshrc
 | `clf <1-5> <helpful\|neutral\|not_helpful> <clear\|mixed\|unclear>` | 피드백 기록 → ~/.claude/feedback/ |
 | `cli [옵션]` | Claude Code 직접 실행 (안전 프롬프트 없음, tmux 적용) |
 
-예: `cl 버그 수정해줘` → tmux 세션 `cl-{폴더명}` 자동 생성 및 실행
+예: `cl 버그 수정해줘` → tmux 세션 `cl-{폴더명}-{경로 해시}` 자동 생성 및 실행. 같은 폴더명인 다른 경로는 별도 세션을 사용합니다.
 
 ## tmux 자동 래핑 (핵심)
 
 모든 `cl*` 명령은 자동으로 tmux 세션을 만들어 실행합니다.
 
-- **SSH 접속 후에도 작업 유지**: 연결이 끊겨도 `tmux attach -t cl-폴더명`으로 재개
+- **SSH 접속 후에도 작업 유지**: 연결이 끊긴 뒤 해당 프로젝트에서 `cl "계속 이어서해"`를 실행하면 같은 세션으로 재개
 - **이미 tmux 내부면**: 자동 감지해서 직접 실행 (재래핑 방지)
 - **비활성화**: `CL_NO_TMUX=1 cl [작업]`
 

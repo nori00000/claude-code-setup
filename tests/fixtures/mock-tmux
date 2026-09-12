@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state="${TMUX_STATE:?}"
+printf '%s\n' "$*" >> "${TMUX_LOG:?}"
+case "$1" in
+  has-session)
+    [[ -f "$state/${3}" ]]
+    ;;
+  new-session)
+    printf '%s\n' "$6" > "$state/${4}"
+    ;;
+  display-message)
+    cat "$state/${4}"
+    ;;
+  send-keys|attach-session)
+    ;;
+  *)
+    echo "unexpected tmux command: $*" >&2
+    exit 1
+    ;;
+esac

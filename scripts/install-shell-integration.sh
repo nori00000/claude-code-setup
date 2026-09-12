@@ -27,11 +27,35 @@ _cl_maybe_tmux() {
     return 1
   fi
   local fn="\$1"; shift
-  # Sanitize session name (tmux disallows . : in names; also strip spaces and /)
-  local sess="cl-\$(basename "\$PWD" | tr './:/ ' '---_')"
+  # Canonicalize first so a symlink and its physical project directory reuse one
+  # session. Include a stable hash because a basename alone makes unrelated
+  # projects such as ~/work/api and ~/archive/api share one tmux session.
+  # Keep the basename as the readable portion of the name.
+  local project_path project_name path_hash sess legacy_sess legacy_path
+  project_path="\$(pwd -P)"
+  project_name="\$(basename "\$project_path" | tr './:/ ' '---_')"
+  if command -v shasum >/dev/null 2>&1; then
+    path_hash="\$(printf '%s' "\$project_path" | shasum -a 256 | awk '{print substr(\$1, 1, 12)}')"
+  fi
+  if [[ -z "\$path_hash" ]]; then
+    # cksum is part of POSIX and is a portable fallback on systems without shasum.
+    path_hash="\$(printf '%s' "\$project_path" | cksum | awk '{print \$1}')"
+  fi
+  sess="cl-\${project_name}-\${path_hash}"
   if tmux has-session -t "\$sess" 2>/dev/null; then
     tmux attach-session -t "\$sess"
     return 0
+  fi
+  # Preserve old cl-<basename> sessions only when tmux confirms that the
+  # session's working directory is this same canonical project. This avoids
+  # reintroducing basename collisions during the migration.
+  legacy_sess="cl-\${project_name}"
+  if tmux has-session -t "\$legacy_sess" 2>/dev/null; then
+    legacy_path="\$(tmux display-message -p -t "\$legacy_sess" '#{session_path}' 2>/dev/null || true)"
+    if [[ -n "\$legacy_path" && "\$(cd "\$legacy_path" 2>/dev/null && pwd -P)" == "\$project_path" ]]; then
+      tmux attach-session -t "\$legacy_sess"
+      return 0
+    fi
   fi
   # Quote args safely (zsh parameter expansion (q))
   local args_q="" a
@@ -39,7 +63,7 @@ _cl_maybe_tmux() {
     args_q+="\${(q)a} "
   done
   # Create detached session, inject the self-rerun with CL_NO_TMUX=1 to prevent recursion
-  tmux new-session -d -s "\$sess" -c "\$PWD"
+  tmux new-session -d -s "\$sess" -c "\$project_path"
   tmux send-keys -t "\$sess" "CL_NO_TMUX=1 \${fn} \${args_q}" Enter
   tmux attach-session -t "\$sess"
   return 0
