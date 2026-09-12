@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+printf '4242 0\n'

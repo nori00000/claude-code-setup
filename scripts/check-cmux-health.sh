@@ -120,7 +120,8 @@ section "Next Step"
 if [[ "${OVERALL_STATUS}" -eq "${STATUS_FULLY_HEALTHY}" ]]; then
   note "Healthy. Continue with:"
   note "  cl \"작업 내용\"         # tmux 자동 래핑 + claude 실행"
-  note "  tmux attach -t cl-\$(basename \$PWD)   # 기존 세션 재접속"
+  note "  cl \"작업 내용\"                       # 해당 경로의 기존 세션 재접속"
+  note "  tmux list-sessions | grep '^cl-'       # 세션 이름 확인 후 수동 재접속"
 elif [[ "${OVERALL_STATUS}" -eq "${STATUS_FALLBACK_READY}" ]]; then
   note "Fallback-ready. Use one of:"
   note "  1. 같은 Mac 일반 터미널: CL_NO_TMUX=1 cl \"작업 내용\""

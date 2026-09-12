@@ -170,7 +170,7 @@ cl
 1. `~/.dev-retrospective/data/machines/` — 세션 종료 시 자동 기록, homelab-orchestration으로 push
 2. `.claude/project-profile.md` — cl 실행 시 last_machine 갱신 (git push 시 공유)
 
-**tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>` tmux 세션 자동 생성. SSH 끊겨도 세션 유지. `CL_NO_TMUX=1 cl`로 비활성화.
+**tmux 자동 래핑:** SSH로 접속해서 `cl` 실행하면 `cl-<프로젝트>-<경로 해시>` tmux 세션을 자동 생성합니다. 같은 폴더명인 다른 프로젝트도 각각 별도 세션을 사용하며, 심볼릭 링크와 실제 경로는 같은 프로젝트로 인식합니다. SSH가 끊겨도 프로젝트 디렉터리에서 `cl`을 다시 실행하면 재접속하며, `CL_NO_TMUX=1 cl`로 비활성화할 수 있습니다.
 
 ## 5단계 운영 플로우
 

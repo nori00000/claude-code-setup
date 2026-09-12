@@ -366,7 +366,7 @@ cl 테스트 추가해줘
 cl "test 폴더에 user.test.ts 추가"
 
 # tmux 밖에서 실행하면:
-# 1. cl-your-project 세션 자동 생성
+# 1. cl-your-project-<path-hash> 세션 자동 생성
 # 2. Claude Code 자동 실행
 # 3. SSH 끊겨도 tmux 세션 유지 → reattach 가능
 ```
@@ -513,8 +513,9 @@ $ cl "API 엔드포인트 추가"
 # 내부 동작:
 # 1. _cl_maybe_tmux 함수 확인
 # 2. tmux 밖인지 확인 (TMUX 환경변수 없음)
-# 3. "cl-<현재_폴더명>" 세션 자동 생성
-# 4. tmux new-session -d -s cl-your-project + send-keys
+# 3. "cl-<현재_폴더명>-<실제 경로_해시>" 세션 자동 생성
+#    (같은 폴더명이라도 서로 다른 프로젝트는 별도 세션)
+# 4. tmux new-session -d -s cl-your-project-<path-hash> + send-keys
 # 5. Claude Code 자동 실행
 ```
 
@@ -551,14 +552,15 @@ studio$ pwd
 
 # cl 실행 → tmux 세션 자동 생성 + 자동 연결 (attach)
 studio$ cl "캐시 버그 수정"
-# Claude Code가 tmux 세션 cl-salpim-web 안에서 실행됨
+# Claude Code가 이 프로젝트 전용 tmux 세션 안에서 실행됨
 # 명시적으로 세션 분리하려면: Ctrl+B, D
-# [detached from session cl-salpim-web]   ← Ctrl+B D 후 표시
+# [detached from session cl-salpim-web-<path-hash>]   ← Ctrl+B D 후 표시
 
 # SSH 끊기거나 분리 후 재접속
 $ ssh your-main-mac
-studio$ tmux attach -t cl-salpim-web
-# 작업이 그대로 진행 중!
+studio$ cd /path/to/project
+studio$ cl "계속 이어서해"
+# 같은 절대 경로에서는 같은 세션으로 자동 재접속됩니다.
 ```
 
 ### 5.4 비활성화 방법
@@ -592,7 +594,7 @@ cmp          # pro 세션
 
 # cms로 studio 접속
 # studio$ cl "작업"
-# → 자동으로 cl-<프로젝트명> 세션 생성
+# → 자동으로 cl-<프로젝트명>-<경로_해시> 세션 생성
 # → SSH 끊겨도 유지
 ```
 
@@ -602,11 +604,15 @@ cmp          # pro 세션
 # 활성 세션 목록
 tmux list-sessions
 
-# 특정 세션 재접속
-tmux attach -t cl-your-project
+# 특정 세션 재접속: 프로젝트 디렉터리에서 cl을 다시 실행하면 자동 재접속
+cl "계속 이어서해"
+
+# 또는 목록에서 정확한 세션 이름을 확인한 뒤 재접속
+tmux list-sessions | grep "^cl-"
+tmux attach -t cl-your-project-<path-hash>
 
 # 세션 강제 종료
-tmux kill-session -t cl-your-project
+tmux kill-session -t cl-your-project-<path-hash>
 
 # 모든 cl-* 세션 보기
 tmux list-sessions | grep "^cl-"
@@ -796,8 +802,8 @@ git fetch origin
 git switch <current-branch>
 git pull --ff-only origin <current-branch>
 
-# tmux 세션이 남아있으면 재접속
-tmux attach -t cl-salpim-web
+# 프로젝트 디렉터리에서 실행하면 남아 있는 해당 경로의 세션으로 자동 재접속
+cl "이어서 작업"
 
 # 없으면 새로 시작 (cl이 tmux 자동 생성)
 cl "이어서 작업"
@@ -961,8 +967,8 @@ $ cms   # alias: cmux your-main-mac로 접속
 # 이미 스튜디오 머신에 연결됨
 studio$ cd ~/projects/salpim-web
 
-# 기존 tmux 세션 재접속
-studio$ tmux attach -t cl-salpim-web
+# 기존 tmux 세션 재접속 (해당 경로의 세션을 자동 선택)
+studio$ cl "이어서 작업"
 
 # 또는 새 작업 시작
 studio$ cl "이어서 작업"
@@ -1130,7 +1136,8 @@ Claude Code와 cmux 환경이 정상인지 빠르게 진단합니다.
 # == Next Step ==
 # Healthy. Continue with:
 #   cl "작업 내용"         # tmux 자동 래핑 + claude 실행
-#   tmux attach -t cl-$(basename $PWD)   # 기존 세션 재접속
+#   cl "작업 내용"                       # 해당 경로의 기존 세션 재접속
+#   tmux list-sessions | grep '^cl-'     # 세션 이름 확인 후 수동 재접속
 ```
 
 **Exit 코드 해석**:
@@ -1508,7 +1515,7 @@ echo $CL_NO_TMUX
 
 # 4. 테스트
 cl "echo test"
-# cl-your-project 세션 생성됨?
+# cl-your-project-<path-hash> 세션 생성됨?
 tmux list-sessions
 ```
 
@@ -1691,7 +1698,7 @@ ls ~/.claude/projects/your-project/
 tmux list-sessions
 
 # 특정 세션 종료 (깔끔하게)
-tmux kill-session -t cl-your-project
+tmux kill-session -t cl-your-project-<path-hash>
 
 # 모든 cl-* 세션 종료
 for session in $(tmux list-sessions | grep "^cl-" | cut -d: -f1); do
