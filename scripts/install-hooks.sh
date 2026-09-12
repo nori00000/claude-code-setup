@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# install-hooks.sh — Register deny-destructive-commands.py hook in ~/.claude/settings.json
+# install-hooks.sh — Register deny-destructive-commands.py hook in Claude settings.json
 # Usage: install-hooks.sh [--dry-run] [--uninstall]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 HOOK_SRC="$REPO_DIR/hooks/deny-destructive-commands.py"
-HOOK_DEST="$HOME/.claude/hooks/deny-destructive-commands.py"
-SETTINGS="$HOME/.claude/settings.json"
-BACKUP_DIR="$HOME/.claude/backups"
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+if [[ "$CLAUDE_DIR" == "~" ]]; then
+  CLAUDE_DIR="$HOME"
+elif [[ "$CLAUDE_DIR" == "~/"* ]]; then
+  CLAUDE_DIR="$HOME/${CLAUDE_DIR#\~/}"
+fi
+HOOK_DEST="$CLAUDE_DIR/hooks/deny-destructive-commands.py"
+SETTINGS="$CLAUDE_DIR/settings.json"
+BACKUP_DIR="$CLAUDE_DIR/backups"
 
 DRY_RUN=false
 UNINSTALL=false
@@ -25,7 +31,7 @@ for arg in "$@"; do
 Usage: $(basename "$0") [--dry-run] [--uninstall]
 
 Register deny-destructive-commands.py as a Bash PreToolUse hook in
-~/.claude/settings.json.
+the active Claude config directory (default: ~/.claude)/settings.json.
 
 Options:
   --dry-run    Show what would happen without making any changes
@@ -165,10 +171,11 @@ run "Copy hook script -> $HOOK_DEST" cp "$HOOK_SRC" "$HOOK_DEST"
 if [[ "$DRY_RUN" == true ]]; then
   dlog "Append Bash PreToolUse hook to settings.json (if not already present)"
 else
-  python3 - "$SETTINGS" <<'PYEOF'
-import json, sys, os
+  python3 - "$SETTINGS" "$HOOK_DEST" <<'PYEOF'
+import json, sys, os, shlex
 
 settings_path = sys.argv[1]
+hook_dest = sys.argv[2]
 
 # Load or create settings
 if os.path.exists(settings_path):
@@ -180,25 +187,39 @@ else:
 hooks = data.setdefault("hooks", {})
 pre = hooks.setdefault("PreToolUse", [])
 
-# Check if Bash/deny-destructive-commands.py entry already present
-already = any(
-    entry.get("matcher") == "Bash"
+# Retarget an existing managed entry, including the legacy ~/.claude command.
+desired_command = f"python3 {shlex.quote(hook_dest)}"
+managed_entries = [
+    entry for entry in pre
+    if entry.get("matcher") == "Bash"
     and any(
         "deny-destructive-commands.py" in h.get("command", "")
         for h in entry.get("hooks", [])
     )
-    for entry in pre
-)
+]
 
-if already:
-    print("  hook already present in settings.json — skipping (idempotent)")
+if managed_entries:
+    migrated = False
+    for entry in managed_entries:
+        for hook in entry.get("hooks", []):
+            if "deny-destructive-commands.py" in hook.get("command", ""):
+                if hook["command"] != desired_command:
+                    hook["command"] = desired_command
+                    migrated = True
+    if migrated:
+        with open(settings_path, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        print("  updated managed hook path in settings.json")
+    else:
+        print("  hook already present in settings.json — skipping (idempotent)")
 else:
     pre.append({
         "matcher": "Bash",
         "hooks": [
             {
                 "type": "command",
-                "command": "python3 ~/.claude/hooks/deny-destructive-commands.py"
+                "command": desired_command
             }
         ]
     })
